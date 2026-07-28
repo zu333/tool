@@ -1,27 +1,25 @@
 export default async function handler(req, res) {
   const { id } = req.query;
 
-  // Agar ID nahi hai, toh wapas homepage par bhej dein
   if (!id) {
     return res.redirect(302, '/');
   }
 
   try {
-    // Firestore ke REST API se post ka data mangwayein
-    const response = await fetch(`https://firestore.googleapis.com/v1/projects/mimetic-victor-p3n78/databases/(default)/documents/infoCards/post_${id}`);
+    // YAHAN FIRESTORE KI JAGAH REALTIME DATABASE KI API USE KI GAYI HAI (.json ke sath)
+    const response = await fetch(`https://mimetic-victor-p3n78-default-rtdb.asia-southeast1.firebasedatabase.app/infoCards/post_${id}.json`);
     const data = await response.json();
 
-    // Agar post database mein nahi hai, toh homepage par bhej dein
-    if (!data.fields) {
+    // Agar post majood na ho toh seedha homepage par le jao
+    if (!data || data.error) {
       return res.redirect(302, '/');
     }
 
-    // Data extract karein
-    const title = data.fields.title ? data.fields.title.stringValue : 'ToolTea';
-    const desc = data.fields.desc ? data.fields.desc.stringValue : 'Social Information & Tools';
-    const img = data.fields.img ? data.fields.img.stringValue : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&h=630&fit=crop';
+    // Realtime Database seedha text return karta hai, is liye fields extract karna bohut asan hai
+    const title = data.title || 'ToolTea';
+    const desc = data.desc || 'Social Information & Tools';
+    const img = data.img || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&h=630&fit=crop';
 
-    // Facebook aur WhatsApp ke liye HTML generate karein
     const html = `
       <!DOCTYPE html>
       <html lang="en">
@@ -31,11 +29,10 @@ export default async function handler(req, res) {
         <meta property="og:title" content="${title}">
         <meta property="og:description" content="${desc}">
         <meta property="og:image" content="${img}">
-        <meta property="og:url" content="https://tool799.vercel.app/?post=${id}">
+        <meta property="og:url" content="https://tool-ruby-seven.vercel.app/?post=${id}">
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:image" content="${img}">
         
-        <!-- Bot (Facebook/WhatsApp) image read kar lega, asli user ko redirect kar diya jayega -->
         <script>
           window.location.href = "/?post=${id}";
         </script>
@@ -51,7 +48,6 @@ export default async function handler(req, res) {
     res.status(200).send(html);
 
   } catch (error) {
-    // Kisi bhi error ki soorat mein seedha homepage par redirect karein
     return res.redirect(302, '/');
   }
 }
