@@ -7,16 +7,13 @@
     <meta property="og:title" content="ToolTea — Social Information & Tools">
     <meta property="og:description" content="Latest social information aur useful tools — sab ek jagah. Simple, fast, aur seedha.">
     <meta property="og:image" content="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&h=630&fit=crop">
-    <meta property="og:url" content="https://tool799.vercel.app/">
+    <meta property="og:url" content="https://tool-ruby-seven.vercel.app/">
     <meta name="twitter:card" content="summary_large_image">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
-    
-    <!-- YAHAN FIRESTORE KI JAGAH DATABASE LINK KIYA GAYA HAI -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-    
     <script>
         tailwind.config={theme:{extend:{colors:{brand:{dark:'#050505',gray:'#0A0A0A',accent:'#3b82f6',violet:'#8b5cf6'}},fontFamily:{inter:['Inter','sans-serif'],urdu:['Noto Nastaliq Urdu','serif']}}}}
     </script>
@@ -241,22 +238,22 @@
 <div id="toast" class="toast"><span class="iconify text-blue-400" data-icon="mdi:check-circle-outline"></span><span id="toastMsg">Msg</span></div>
 
 <script>
+// Naya Firebase Config Yahan Add Kiya Gaya Hai
 var firebaseConfig = {
-    apiKey: "AIzaSyCBDYGcCP4uM3wLJyd8rQuvGIB7i5GT5T4",
-    authDomain: "mimetic-victor-p3n78.firebaseapp.com",
-    // NOTE: Yeh URL hamesha Realtime Database mein likha hota hai, isay mat mitayen
-    databaseURL: "https://mimetic-victor-p3n78-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "mimetic-victor-p3n78",
-    storageBucket: "mimetic-victor-p3n78.firebasestorage.app",
-    messagingSenderId: "631277007702",
-    appId: "1:631277007702:web:a7b4d502ffabb336a95cf7"
+    apiKey: "AIzaSyBsr72VFXwgW3dsJyhjGnisWgtlSA4ynVY",
+    authDomain: "school-c9633.firebaseapp.com",
+    databaseURL: "https://school-c9633-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "school-c9633",
+    storageBucket: "school-c9633.firebasestorage.app",
+    messagingSenderId: "293275030223",
+    appId: "1:293275030223:web:a52db38e099c4dc7019dba"
 };
 
 var db = null;
 try {
     if (typeof firebase !== 'undefined') {
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        db = firebase.database(); // YAHAN REALTIME DATABASE CALL KIYA GAYA HAI
+        db = firebase.database(); 
     }
 } catch (e) { console.warn("Firebase init:", e); }
 
@@ -274,7 +271,6 @@ var uploadedImageBase64="";
 function initFirebaseSync() {
     if (!db) return;
     
-    // Yahan Firebase Realtime Database ki reading ho rahi hai
     db.ref('infoCards').on('value', function(snap) {
         var val = snap.val();
         if (!val) {
