@@ -12,8 +12,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+    
+    <!-- YAHAN FIRESTORE KI JAGAH DATABASE LINK KIYA GAYA HAI -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    
     <script>
         tailwind.config={theme:{extend:{colors:{brand:{dark:'#050505',gray:'#0A0A0A',accent:'#3b82f6',violet:'#8b5cf6'}},fontFamily:{inter:['Inter','sans-serif'],urdu:['Noto Nastaliq Urdu','serif']}}}}
     </script>
@@ -241,6 +244,8 @@
 var firebaseConfig = {
     apiKey: "AIzaSyCBDYGcCP4uM3wLJyd8rQuvGIB7i5GT5T4",
     authDomain: "mimetic-victor-p3n78.firebaseapp.com",
+    // NOTE: Yeh URL hamesha Realtime Database mein likha hota hai, isay mat mitayen
+    databaseURL: "https://mimetic-victor-p3n78-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "mimetic-victor-p3n78",
     storageBucket: "mimetic-victor-p3n78.firebasestorage.app",
     messagingSenderId: "631277007702",
@@ -251,7 +256,7 @@ var db = null;
 try {
     if (typeof firebase !== 'undefined') {
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        db = firebase.firestore();
+        db = firebase.database(); // YAHAN REALTIME DATABASE CALL KIYA GAYA HAI
     }
 } catch (e) { console.warn("Firebase init:", e); }
 
@@ -268,15 +273,19 @@ var uploadedImageBase64="";
 
 function initFirebaseSync() {
     if (!db) return;
-    db.collection('infoCards').onSnapshot(function(snap) {
-        if (snap.empty) {
-            var dataToSeed = (infoCards && infoCards.length > 0) ? infoCards : DEFAULT_INFO; dataToSeed.forEach(function(item, idx) {
+    
+    // Yahan Firebase Realtime Database ki reading ho rahi hai
+    db.ref('infoCards').on('value', function(snap) {
+        var val = snap.val();
+        if (!val) {
+            var dataToSeed = (infoCards && infoCards.length > 0) ? infoCards : DEFAULT_INFO; 
+            dataToSeed.forEach(function(item, idx) {
                 var d = Object.assign({}, item, {order: idx+1});
-                db.collection('infoCards').doc('post_' + item.id).set(d);
+                db.ref('infoCards/post_' + item.id).set(d);
             });
         } else {
             var items = [];
-            snap.forEach(function(doc) { items.push(doc.data()); });
+            for (var key in val) { items.push(val[key]); }
             items.sort(function(a,b){ return (a.order||a.id) - (b.order||b.id); });
             infoCards = items;
             localStorage.setItem('tt_info', JSON.stringify(infoCards));
@@ -286,16 +295,17 @@ function initFirebaseSync() {
                 document.getElementById('statInfo').textContent = infoCards.filter(function(c){return c.active;}).length;
             }
         }
-    }, function(err){ console.warn("Firestore infoCards error:", err); });
+    });
 
-    db.collection('toolsData').onSnapshot(function(snap) {
-        if (snap.empty) {
+    db.ref('toolsData').on('value', function(snap) {
+        var val = snap.val();
+        if (!val) {
             DEFAULT_TOOLS.forEach(function(t) {
-                db.collection('toolsData').doc('tool_' + t.id).set(t);
+                db.ref('toolsData/tool_' + t.id).set(t);
             });
         } else {
             var items = [];
-            snap.forEach(function(doc) { items.push(doc.data()); });
+            for (var key in val) { items.push(val[key]); }
             toolsData = items;
             localStorage.setItem('tt_tools', JSON.stringify(toolsData));
             renderToolCards();
@@ -303,26 +313,28 @@ function initFirebaseSync() {
                 document.getElementById('statTools').textContent = toolsData.filter(function(t){return t.active;}).length;
             }
         }
-    }, function(err){ console.warn("Firestore toolsData error:", err); });
+    });
 
-    db.collection('siteSettings').doc('settings').onSnapshot(function(doc) {
-        if (doc.exists) {
-            siteSettings = doc.data();
+    db.ref('siteSettings/settings').on('value', function(snap) {
+        var val = snap.val();
+        if (val) {
+            siteSettings = val;
             localStorage.setItem('tt_settings', JSON.stringify(siteSettings));
             applySettings();
         } else {
-            db.collection('siteSettings').doc('settings').set(siteSettings);
+            db.ref('siteSettings/settings').set(siteSettings);
         }
-    }, function(err){ console.warn("Firestore siteSettings error:", err); });
+    });
 
-    db.collection('siteSettings').doc('auth').onSnapshot(function(doc) {
-        if (doc.exists) {
-            adminPassword = doc.data().password || "tool799";
+    db.ref('siteSettings/auth').on('value', function(snap) {
+        var val = snap.val();
+        if (val && val.password) {
+            adminPassword = val.password;
             localStorage.setItem('tt_pass', adminPassword);
         } else {
-            db.collection('siteSettings').doc('auth').set({password: "tool799"});
+            db.ref('siteSettings/auth').set({password: "tool799"});
         }
-    }, function(err){ console.warn("Firestore auth error:", err); });
+    });
 }
 
 var toastTimeout;function showToast(m){var t=document.getElementById('toast');document.getElementById('toastMsg').textContent=m;t.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(function(){t.classList.remove('show')},3000)}
@@ -357,7 +369,7 @@ function saveSiteSettings(){
     s.showInfo=document.getElementById('toggleInfoSection').classList.contains('on');
     s.showTools=document.getElementById('toggleToolsSection').classList.contains('on');
     localStorage.setItem('tt_settings',JSON.stringify(s));
-    if (db) db.collection('siteSettings').doc('settings').set(s);
+    if (db) db.ref('siteSettings/settings').set(s);
     applySettings();
     showToast('Saved!');
 }
@@ -373,7 +385,7 @@ function saveAppearance(){
     s.showAbout=document.getElementById('toggleAbout').classList.contains('on');
     s.showFooter=document.getElementById('toggleFooter').classList.contains('on');
     localStorage.setItem('tt_settings',JSON.stringify(s));
-    if (db) db.collection('siteSettings').doc('settings').set(s);
+    if (db) db.ref('siteSettings/settings').set(s);
     applySettings();
     showToast('Saved!');
 }
@@ -667,8 +679,8 @@ function moveInfoCard(index,direction){
     infoCards.forEach(function(item, idx){ item.order = idx + 1; });
     localStorage.setItem('tt_info',JSON.stringify(infoCards));
     if (db) {
-        db.collection('infoCards').doc('post_' + infoCards[index].id).set(infoCards[index]);
-        db.collection('infoCards').doc('post_' + infoCards[newIndex].id).set(infoCards[newIndex]);
+        db.ref('infoCards/post_' + infoCards[index].id).set(infoCards[index]);
+        db.ref('infoCards/post_' + infoCards[newIndex].id).set(infoCards[newIndex]);
     }
     renderInfoTable();
     renderInfoCards();
@@ -721,7 +733,7 @@ function saveInfoCard(){
     }
     try{localStorage.setItem('tt_info',JSON.stringify(infoCards))}catch(e){}
     if (db) {
-        db.collection('infoCards').doc('post_' + data.id).set(data);
+        db.ref('infoCards/post_' + data.id).set(data);
     }
     closeInfoEditor();
     renderInfoTable();
@@ -735,7 +747,7 @@ function toggleInfoCard(id){
     if(c){
         c.active=!c.active;
         localStorage.setItem('tt_info',JSON.stringify(infoCards));
-        if (db) db.collection('infoCards').doc('post_' + id).update({active: c.active});
+        if (db) db.ref('infoCards/post_' + id).update({active: c.active});
         renderInfoTable();
         renderInfoCards();
         if (document.getElementById('statInfo')) document.getElementById('statInfo').textContent=infoCards.filter(function(c){return c.active}).length;
@@ -746,7 +758,7 @@ function toggleInfoCard(id){
 function deleteInfoCard(id){
     infoCards=infoCards.filter(function(x){return x.id!==id});
     localStorage.setItem('tt_info',JSON.stringify(infoCards));
-    if (db) db.collection('infoCards').doc('post_' + id).delete();
+    if (db) db.ref('infoCards/post_' + id).remove();
     renderInfoTable();
     renderInfoCards();
     if (document.getElementById('statInfo')) document.getElementById('statInfo').textContent=infoCards.filter(function(c){return c.active}).length;
@@ -759,7 +771,7 @@ function saveToolsSettings(){
     var tgs=document.querySelectorAll('#toolsListAdmin .toggle');
     tgs.forEach(function(tg,i){
         toolsData[i].active=tg.classList.contains('on');
-        if (db) db.collection('toolsData').doc('tool_' + toolsData[i].id).set(toolsData[i]);
+        if (db) db.ref('toolsData/tool_' + toolsData[i].id).set(toolsData[i]);
     });
     localStorage.setItem('tt_tools',JSON.stringify(toolsData));
     renderToolCards();
@@ -787,7 +799,7 @@ function changePassword(){
     if(n!==cf){showToast('No match!');return}
     adminPassword=n;
     localStorage.setItem('tt_pass',adminPassword);
-    if (db) db.collection('siteSettings').doc('auth').set({password: adminPassword});
+    if (db) db.ref('siteSettings/auth').set({password: adminPassword});
     document.getElementById('secCurrentPass').value='';
     document.getElementById('secNewPass').value='';
     document.getElementById('secConfirmPass').value='';
@@ -798,7 +810,7 @@ function resetAllSettings(){
     if(!confirm('Reset?'))return;
     localStorage.removeItem('tt_settings');
     siteSettings={siteName:"ToolTea",tagline:"Social Information & Tools",heroDesc:"Latest social information aur useful tools — sab ek jagah. Simple, fast, aur seedha.",footerText:"© 2025 ToolTea. All rights reserved.",infoTitle:"Social Information",infoDesc:"Social media aur tech duniya ki taaza khabrein aur important information.",toolsTitle:"Useful Tools",toolsDesc:"Yeh tools bilkul free hain — koi signup nahi, koi limit nahi.",showInfo:true,showTools:true,showAbout:true,showFooter:true,infoCols:3,toolsCols:3,bgColor:"#0A0A0A",accentColor:"#3b82f6",violetColor:"#8b5cf6",textColor:"#FFFFFF"};
-    if (db) db.collection('siteSettings').doc('settings').set(siteSettings);
+    if (db) db.ref('siteSettings/settings').set(siteSettings);
     loadAdminData();
     applySettings();
     showToast('Reset!');
@@ -812,13 +824,13 @@ function clearAllData(){
     adminPassword="tool799";
     siteSettings={siteName:"ToolTea",tagline:"Social Information & Tools",heroDesc:"Latest social information aur useful tools — sab ek jagah. Simple, fast, aur seedha.",footerText:"© 2025 ToolTea. All rights reserved.",infoTitle:"Social Information",infoDesc:"Social media aur tech duniya ki taaza khabrein aur important information.",toolsTitle:"Useful Tools",toolsDesc:"Yeh tools bilkul free hain — koi signup nahi, koi limit nahi.",showInfo:true,showTools:true,showAbout:true,showFooter:true,infoCols:3,toolsCols:3,bgColor:"#0A0A0A",accentColor:"#3b82f6",violetColor:"#8b5cf6",textColor:"#FFFFFF"};
     if (db) {
-        db.collection('siteSettings').doc('settings').set(siteSettings);
-        db.collection('siteSettings').doc('auth').set({password: "tool799"});
+        db.ref('siteSettings/settings').set(siteSettings);
+        db.ref('siteSettings/auth').set({password: "tool799"});
         var dataToSeed = (infoCards && infoCards.length > 0) ? infoCards : DEFAULT_INFO; dataToSeed.forEach(function(item, idx) {
-            db.collection('infoCards').doc('post_' + item.id).set(Object.assign({}, item, {order: idx+1}));
+            db.ref('infoCards/post_' + item.id).set(Object.assign({}, item, {order: idx+1}));
         });
         DEFAULT_TOOLS.forEach(function(t) {
-            db.collection('toolsData').doc('tool_' + t.id).set(t);
+            db.ref('toolsData/tool_' + t.id).set(t);
         });
     }
     loadAdminData();
