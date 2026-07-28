@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToolTea — Social Information</title>
+    <meta property="og:title" content="ToolTea — Social Information & Tools">
+    <meta property="og:description" content="Latest social information aur useful tools — sab ek jagah. Simple, fast, aur seedha.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&h=630&fit=crop">
+    <meta property="og:url" content="https://tool799.vercel.app/">
+    <meta name="twitter:card" content="summary_large_image">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script>
+        tailwind.config={theme:{extend:{colors:{brand:{dark:'#050505',gray:'#0A0A0A',accent:'#3b82f6',violet:'#8b5cf6'}},fontFamily:{inter:['Inter','sans-serif'],urdu:['Noto Nastaliq Urdu','serif']}}}}
+    </script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;background-color:#0A0A0A;color:#FFFFFF;scroll-behavior:smooth}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#050505}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+        .info-card:hover{border-color:rgba(255,255,255,0.15)}
+        .tool-card:hover{border-color:rgba(59,130,246,0.4);background:rgba(59,130,246,0.05)}
+        .tool-card:hover .tool-icon{background:rgba(59,130,246,0.15);color:#3b82f6}
+        .nav-link{position:relative}.nav-link::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:linear-gradient(to right,#3b82f6,#8b5cf6);transition:width .3s}.nav-link:hover::after{width:100%}
+        .fade-in{opacity:0;transform:translateY(20px);transition:opacity .6s,transform .6s}.fade-in.visible{opacity:1;transform:translateY(0)}
+        .tag{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:9999px}
+        .toast{position:fixed;bottom:30px;right:30px;background:#1a1a2e;border:1px solid rgba(59,130,246,0.3);color:#fff;padding:14px 24px;border-radius:12px;font-size:14px;z-index:10000;transform:translateY(100px);opacity:0;transition:all .4s;display:flex;align-items:center;gap:10px}.toast.show{transform:translateY(0);opacity:1}
+        .modal-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px}.modal-overlay.active{display:flex}
+        .admin-sidebar-link{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:10px;font-size:14px;color:#a3a3a3;transition:all .2s;cursor:pointer}.admin-sidebar-link:hover,.admin-sidebar-link.active{background:rgba(59,130,246,0.1);color:#fff}
+        .admin-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:14px;color:#fff;outline:none;transition:border-color .2s;font-family:'Inter',sans-serif}.admin-input:focus{border-color:rgba(59,130,246,0.5)}.admin-input::placeholder{color:#525252}
+        .admin-btn{padding:10px 20px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;border:none;font-family:'Inter',sans-serif}
+        .admin-btn-primary{background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff}.admin-btn-primary:hover{opacity:.9;transform:scale(1.02)}
+        .admin-btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.1);color:#a3a3a3}.admin-btn-ghost:hover{border-color:rgba(255,255,255,0.2);color:#fff}
+        .admin-btn-danger{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#f87171}.admin-btn-danger:hover{background:rgba(239,68,68,0.2)}
+        .admin-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:14px;padding:20px}
+        .admin-table{width:100%;border-collapse:separate;border-spacing:0}.admin-table th{text-align:left;padding:10px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#525252;border-bottom:1px solid rgba(255,255,255,0.05)}.admin-table td{padding:12px 14px;font-size:13px;color:#a3a3a3;border-bottom:1px solid rgba(255,255,255,0.03)}.admin-table tr:hover td{background:rgba(255,255,255,0.02)}
+        .toggle{width:44px;height:24px;border-radius:12px;background:#333;position:relative;cursor:pointer;transition:background .3s;flex-shrink:0}.toggle.on{background:#3b82f6}.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .3s}.toggle.on::after{transform:translateX(20px)}
+        select.admin-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a3a3a3' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}select.admin-input option{background:#1a1a1a;color:#fff}
+        .admin-badge{display:inline-block;padding:3px 10px;border-radius:9999px;font-size:10px;font-weight:600}
+        .admin-trigger{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;color:#60a5fa;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);cursor:pointer;transition:all .25s}.admin-trigger:hover{background:rgba(59,130,246,0.2);border-color:rgba(59,130,246,0.4);color:#93bbfd;transform:scale(1.03)}
+        .admin-trigger-mobile{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;color:#60a5fa;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);cursor:pointer;transition:all .25s}.admin-trigger-mobile:hover{background:rgba(59,130,246,0.2);color:#93bbfd}
+        .upload-zone{border:2px dashed rgba(255,255,255,0.1);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all .3s}.upload-zone:hover,.upload-zone.dragover{border-color:rgba(59,130,246,0.4);background:rgba(59,130,246,0.05)}
+        .img-preview-box{position:relative;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.03)}.img-preview-box img{width:100%;height:160px;object-fit:cover;display:block}
+        .img-preview-box .remove-img{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.2);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:all .2s}.img-preview-box .remove-img:hover{background:rgba(239,68,68,0.8)}
+        .text-editor-area{background:rgba(255,255,255,0.05)!important;border:1px solid rgba(255,255,255,0.1);border-radius:0 0 10px 10px;border-top:none;min-height:120px;max-height:300px;overflow-y:auto;padding:14px;font-size:18px;line-height:1.8;color:#fff!important;outline:none;transition:border-color .2s;word-wrap:break-word;-webkit-text-fill-color:#fff}
+        .text-editor-area:focus{border-color:rgba(59,130,246,0.5)}
+        .text-editor-area:empty:before{content:attr(data-placeholder);color:#525252;pointer-events:none}
+        .text-editor-area *{background:transparent!important;-webkit-text-fill-color:inherit!important;color:inherit!important}
+        .text-editor-area::selection{background:rgba(59,130,246,0.3);color:#fff}
+        .text-editor-area *::selection{background:rgba(59,130,246,0.3);color:#fff}
+        .editor-toolbar{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:10px 10px 0 0;border-bottom:none}
+        .editor-toolbar button{width:32px;height:32px;border-radius:6px;border:none;background:transparent;color:#a3a3a3;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-size:13px}
+        .editor-toolbar button:hover{background:rgba(255,255,255,0.08);color:#fff}
+        .editor-toolbar .sep{width:1px;height:24px;background:rgba(255,255,255,0.08);margin:4px 6px;align-self:center}
+        .color-picker-wrap{position:relative;width:32px;height:32px;border-radius:6px;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center}
+        .color-picker-wrap input[type="color"]{position:absolute;top:-6px;left:-6px;width:44px;height:44px;border:none;background:transparent;cursor:pointer;opacity:0}
+        .color-picker-wrap .color-icon{pointer-events:none;font-size:16px;color:#a3a3a3}
+        .preview-box{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px;min-height:100px;word-wrap:break-word;overflow-wrap:break-word}
+        .preview-box *{background:transparent!important}
+        .stroke-range{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:#333;outline:none}.stroke-range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#3b82f6;cursor:pointer;border:2px solid #0A0A0A}
+        .reorder-btn{width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#737373;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-size:14px}
+        .reorder-btn:hover{background:rgba(255,255,255,0.06);color:#fff;border-color:rgba(255,255,255,0.15)}
+        .reorder-btn:disabled{opacity:0.2;cursor:not-allowed}
+    </style>
+</head>
+<body>
+
+<nav class="fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-6" style="background:rgba(10,10,10,0.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.05);">
+    <a href="#" class="flex items-center gap-2"><div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);"><span class="iconify text-white text-sm" data-icon="mdi:tea"></span></div><span class="text-lg font-semibold tracking-tight" id="siteNameNav">ToolTea</span></a>
+    <div class="hidden md:flex items-center gap-6">
+        <a href="#information" class="nav-link text-sm font-medium text-neutral-400 hover:text-white transition-colors">Information</a>
+        <a href="#tools" class="nav-link text-sm font-medium text-neutral-400 hover:text-white transition-colors">Tools</a>
+        <a href="#about" class="nav-link text-sm font-medium text-neutral-400 hover:text-white transition-colors">About</a>
+        <button class="admin-trigger" onclick="openAdminLogin()"><span class="iconify text-sm" data-icon="mdi:shield-lock-outline"></span>Admin</button>
+    </div>
+    <div class="flex items-center gap-2 md:hidden">
+        <button class="admin-trigger-mobile" onclick="openAdminLogin()"><span class="iconify text-lg" data-icon="mdi:shield-lock-outline"></span></button>
+        <button id="mobileMenuBtn" class="p-2 text-neutral-400 hover:text-white transition-colors"><span class="iconify text-2xl" data-icon="mdi:menu"></span></button>
+    </div>
+</nav>
+
+<div id="mobileMenu" class="fixed inset-0 z-40 hidden" style="background:rgba(5,5,5,0.95);backdrop-filter:blur(20px);">
+    <div class="flex flex-col items-center justify-center h-full gap-8">
+        <a href="#information" class="text-2xl font-medium text-neutral-300 hover:text-white transition-colors mobile-link">Information</a>
+        <a href="#tools" class="text-2xl font-medium text-neutral-300 hover:text-white transition-colors mobile-link">Tools</a>
+        <a href="#about" class="text-2xl font-medium text-neutral-300 hover:text-white transition-colors mobile-link">About</a>
+        <button onclick="openAdminLogin();document.getElementById('mobileMenu').classList.add('hidden');" class="text-2xl font-medium text-blue-400 hover:text-blue-300 transition-colors">Admin Panel</button>
+        <button id="mobileMenuClose" class="mt-8 text-neutral-500 hover:text-white transition-colors"><span class="iconify text-3xl" data-icon="mdi:close"></span></button>
+    </div>
+</div>
+
+<div id="adminLoginModal" class="modal-overlay">
+    <div class="w-full max-w-sm rounded-2xl p-8" style="background:#111;border:1px solid rgba(255,255,255,0.08);">
+        <div class="text-center mb-6"><div class="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);"><span class="iconify text-white text-2xl" data-icon="mdi:shield-lock"></span></div><h3 class="text-lg font-semibold">Admin Login</h3></div>
+        <div id="loginError" class="hidden mb-4 p-3 rounded-lg text-xs text-red-400" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);">Wrong password!</div>
+        <input id="adminPassInput" type="password" placeholder="Enter password..." class="admin-input mb-4" onkeydown="if(event.key==='Enter')attemptLogin()">
+        <button onclick="attemptLogin()" class="admin-btn admin-btn-primary w-full mb-3">Login</button>
+        <button onclick="closeAdminLogin()" class="admin-btn admin-btn-ghost w-full">Cancel</button>
+    </div>
+</div>
+
+<div id="adminPanel" class="fixed inset-0 z-[9500] hidden" style="background:#0A0A0A;">
+    <div class="flex h-full">
+        <div class="w-64 h-full flex-shrink-0 border-r border-white/5 flex flex-col" style="background:#080808;">
+            <div class="p-5 border-b border-white/5"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-md flex items-center justify-center" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);"><span class="iconify text-white text-xs" data-icon="mdi:tea"></span></div><span class="text-sm font-semibold">Admin Panel</span></div></div>
+            <div class="flex-1 p-3 flex flex-col gap-1 overflow-y-auto">
+                <div class="admin-sidebar-link active" onclick="switchAdminTab('dashboard',this)"><span class="iconify text-lg" data-icon="mdi:view-dashboard-outline"></span>Dashboard</div>
+                <div class="admin-sidebar-link" onclick="switchAdminTab('siteSettings',this)"><span class="iconify text-lg" data-icon="mdi:cog-outline"></span>Site Settings</div>
+                <div class="admin-sidebar-link" onclick="switchAdminTab('manageInfo',this)"><span class="iconify text-lg" data-icon="mdi:newspaper-variant-outline"></span>Manage Information</div>
+                <div class="admin-sidebar-link" onclick="switchAdminTab('manageTools',this)"><span class="iconify text-lg" data-icon="mdi:tools"></span>Manage Tools</div>
+                <div class="admin-sidebar-link" onclick="switchAdminTab('appearance',this)"><span class="iconify text-lg" data-icon="mdi:palette-outline"></span>Appearance</div>
+                <div class="admin-sidebar-link" onclick="switchAdminTab('security',this)"><span class="iconify text-lg" data-icon="mdi:shield-check-outline"></span>Security</div>
+            </div>
+            <div class="p-3 border-t border-white/5"><div class="admin-sidebar-link text-red-400 hover:!text-red-300 hover:!bg-red-500/10" onclick="adminLogout()"><span class="iconify text-lg" data-icon="mdi:logout"></span>Logout</div></div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-8">
+            <div class="flex items-center justify-between mb-8"><div><h2 class="text-xl font-semibold" id="adminPageTitle">Dashboard</h2><p class="text-neutral-500 text-sm mt-1" id="adminPageDesc">Overview</p></div><button onclick="closeAdminPanel()" class="p-2 rounded-lg text-neutral-500 hover:text-white hover:bg-white/5 transition-all"><span class="iconify text-xl" data-icon="mdi:close"></span></button></div>
+
+            <div id="tab-dashboard" class="admin-tab">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="admin-card"><div class="flex items-center justify-between mb-3"><span class="text-xs text-neutral-500 font-medium">Info Cards</span><span class="iconify text-blue-400" data-icon="mdi:newspaper-variant-outline"></span></div><div class="text-2xl font-semibold" id="statInfo">6</div></div>
+                    <div class="admin-card"><div class="flex items-center justify-between mb-3"><span class="text-xs text-neutral-500 font-medium">Active Tools</span><span class="iconify text-violet-400" data-icon="mdi:tools"></span></div><div class="text-2xl font-semibold" id="statTools">6</div></div>
+                    <div class="admin-card"><div class="flex items-center justify-between mb-3"><span class="text-xs text-neutral-500 font-medium">Status</span><span class="iconify text-green-400" data-icon="mdi:check-circle-outline"></span></div><div class="text-2xl font-semibold text-green-400">Live</div></div>
+                    <div class="admin-card"><div class="flex items-center justify-between mb-3"><span class="text-xs text-neutral-500 font-medium">Admin</span><span class="iconify text-yellow-400" data-icon="mdi:account-check-outline"></span></div><div class="text-2xl font-semibold text-green-400">Active</div></div>
+                </div>
+                <div class="admin-card"><h3 class="text-sm font-medium mb-4">Quick Actions</h3><div class="flex flex-wrap gap-3"><button onclick="switchAdminTab('siteSettings',document.querySelectorAll('.admin-sidebar-link')[1])" class="admin-btn admin-btn-ghost text-xs">Site Settings</button><button onclick="switchAdminTab('manageInfo',document.querySelectorAll('.admin-sidebar-link')[2])" class="admin-btn admin-btn-ghost text-xs">Manage Info</button><button onclick="switchAdminTab('manageTools',document.querySelectorAll('.admin-sidebar-link')[3])" class="admin-btn admin-btn-ghost text-xs">Tools</button><button onclick="switchAdminTab('appearance',document.querySelectorAll('.admin-sidebar-link')[4])" class="admin-btn admin-btn-ghost text-xs">Appearance</button></div></div>
+            </div>
+
+            <div id="tab-siteSettings" class="admin-tab hidden">
+                <div class="max-w-2xl space-y-6">
+                    <div class="admin-card"><h3 class="text-sm font-medium mb-4">General</h3><div class="space-y-4"><div><label class="block text-xs text-neutral-500 mb-2">Site Name</label><input id="setSiteName" type="text" value="ToolTea" class="admin-input"></div><div><label class="block text-xs text-neutral-500 mb-2">Tagline</label><input id="setSiteTagline" type="text" value="Social Information & Tools" class="admin-input"></div><div><label class="block text-xs text-neutral-500 mb-2">Hero Description</label><textarea id="setHeroDesc" rows="3" class="admin-input resize-none">Latest social information aur useful tools — sab ek jagah. Simple, fast, aur seedha.</textarea></div><div><label class="block text-xs text-neutral-500 mb-2">Footer Text</label><input id="setFooterText" type="text" value="© 2025 ToolTea. All rights reserved." class="admin-input"></div></div></div>
+                    <div class="admin-card"><h3 class="text-sm font-medium mb-4">Information Section</h3><div class="space-y-4"><div><label class="block text-xs text-neutral-500 mb-2">Title</label><input id="setInfoTitle" type="text" value="Social Information" class="admin-input"></div><div><label class="block text-xs text-neutral-500 mb-2">Description</label><textarea id="setInfoDesc" rows="2" class="admin-input resize-none">Social media aur tech duniya ki taaza khabrein aur important information.</textarea></div><div class="flex items-center justify-between"><div><div class="text-sm">Show Section</div></div><div id="toggleInfoSection" class="toggle on" onclick="this.classList.toggle('on')"></div></div></div></div>
+                    <div class="admin-card"><h3 class="text-sm font-medium mb-4">Tools Section</h3><div class="space-y-4"><div><label class="block text-xs text-neutral-500 mb-2">Title</label><input id="setToolsTitle" type="text" value="Useful Tools" class="admin-input"></div><div><label class="block text-xs text-neutral-500 mb-2">Description</label><textarea id="setToolsDesc" rows="2" class="admin-input resize-none">Yeh tools bilkul free hain — koi signup nahi, koi limit nahi.</textarea></div><div class="flex items-center justify-between"><div><div class="text-sm">Show Section</div></div><div id="toggleToolsSection" class="toggle on" onclick="this.classList.toggle('on')"></div></div></div></div>
+                    <button onclick="saveSiteSettings()" class="admin-btn admin-btn-primary">Save Settings</button>
+                </div>
+            </div>
+
+            <div id="tab-manageInfo" class="admin-tab hidden">
+                <div class="flex items-center justify-between mb-6"><p class="text-neutral-500 text-sm">Add, edit, delete, reorder</p><button onclick="openInfoEditor()" class="admin-btn admin-btn-primary text-xs"><span class="iconify inline-block align-middle mr-1" data-icon="mdi:plus"></span>Add New</button></div>
+
+                <div id="infoEditor" class="hidden mb-6 space-y-5">
+                    <div class="admin-card" style="border-color:rgba(59,130,246,0.2);"><h3 class="text-sm font-medium mb-4" id="infoEditorTitle">Add Information</h3><input id="editInfoId" type="hidden" value=""><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-xs text-neutral-500 mb-2">Title</label><input id="editInfoTitle" type="text" placeholder="Title..." class="admin-input"></div><div><label class="block text-xs text-neutral-500 mb-2">Category</label><select id="editInfoCat" class="admin-input"><option value="Social Media" style="background:#111">Social Media</option><option value="Technology" style="background:#111">Technology</option><option value="Trending" style="background:#111">Trending</option><option value="Security" style="background:#111">Security</option><option value="YouTube" style="background:#111">YouTube</option><option value="App Update" style="background:#111">App Update</option><option value="Other" style="background:#111">Other</option></select></div></div><div><label class="block text-xs text-neutral-500 mb-2">Time Label</label><input id="editInfoTime" type="text" placeholder="e.g. 2 hours ago" class="admin-input"></div></div>
+
+                    <div class="admin-card" style="border-color:rgba(34,197,94,0.15);">
+                        <h3 class="text-sm font-medium mb-2 flex items-center gap-2"><span class="iconify text-green-400" data-icon="mdi:link-variant"></span>Link Settings <span class="text-xs font-normal text-neutral-500">(Optional — dono alag alag naye windows me khulenge)</span></h3>
+                        <div class="space-y-4">
+                            <div><label class="block text-xs text-neutral-500 mb-2">Link 1 (Target) — Naye window me khulega</label><input id="editTargetLink" type="text" placeholder="https://example.com/page1" class="admin-input"></div>
+                            <div><label class="block text-xs text-neutral-500 mb-2">Link 2 (Direct) — Alag naye window me khulega</label><input id="editDirectLink" type="text" placeholder="https://example.com/page2" class="admin-input"></div>
+                        </div>
+                    </div>
+
+                    <div class="admin-card" style="border-color:rgba(59,130,246,0.15);">
+                        <h3 class="text-sm font-medium mb-4">Image Upload</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4"><div><label class="block text-xs text-neutral-500 mb-2">Width</label><input id="imgResizeW" type="number" value="600" min="100" max="2000" class="admin-input"></div><div><label class="block text-xs text-neutral-500 mb-2">Height</label><input id="imgResizeH" type="number" value="340" min="100" max="2000" class="admin-input"></div><div><label class="block text-xs text-neutral-500 mb-2">Quality %</label><input id="imgQuality" type="number" value="80" min="10" max="100" class="admin-input"></div></div>
+                        <div id="uploadZone" class="upload-zone mb-4" onclick="document.getElementById('imgFileInput').click()"><span class="iconify text-3xl text-neutral-500 mb-2" data-icon="mdi:cloud-upload-outline"></span><p class="text-sm text-neutral-400">Click ya drag karein</p><p class="text-xs text-neutral-600 mt-1">JPG, PNG, WebP</p><input id="imgFileInput" type="file" accept="image/*" class="hidden" onchange="handleImageUpload(event)"></div>
+                        <div id="imgPreviewContainer" class="hidden"><div class="img-preview-box mb-3"><img id="imgPreview" src="" alt="Preview"><div class="remove-img" onclick="removeUploadedImage()">&times;</div></div><div class="text-xs text-neutral-500" id="imgInfoText"></div></div>
+                        <div class="flex items-center gap-3 my-4"><div class="flex-1 h-px bg-white/5"></div><span class="text-xs text-neutral-600">YA URL</span><div class="flex-1 h-px bg-white/5"></div></div>
+                        <div><label class="block text-xs text-neutral-500 mb-2">Image URL</label><input id="editInfoImg" type="text" placeholder="https://..." class="admin-input"></div>
+                    </div>
+
+                    <div class="admin-card" style="border-color:rgba(139,92,246,0.15);">
+                        <h3 class="text-sm font-medium mb-4">Text Editor</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                            <div><label class="block text-xs text-neutral-500 mb-2">Font</label><div class="flex gap-2"><select id="editorFont" class="admin-input" onchange="handleFontFamilyInput(this.value)"><option value="'Inter', sans-serif">English — Inter</option><option value="'Noto Nastaliq Urdu', serif">اردو — Noto Nastaliq</option><option value="'Georgia', serif">English — Georgia</option><option value="'Courier New', monospace">English — Monospace</option></select></div></div>
+                            <div><label class="block text-xs text-neutral-500 mb-2">Size</label><div class="flex items-center gap-3"><input id="editorFontSize" type="range" min="12" max="72" value="18" class="stroke-range flex-1" oninput="handleFontSizeInput(this.value)"><span class="text-xs text-neutral-400 w-10 text-right" id="fontSizeVal">18px</span></div></div>
+                        </div>
+                        <div class="editor-toolbar">
+                            <button onclick="execCmd('bold')" title="Bold"><span class="iconify" data-icon="mdi:format-bold"></span></button>
+                            <button onclick="execCmd('italic')" title="Italic"><span class="iconify" data-icon="mdi:format-italic"></span></button>
+                            <button onclick="execCmd('underline')" title="Underline"><span class="iconify" data-icon="mdi:format-underline"></span></button>
+                            <button onclick="execCmd('strikeThrough')" title="Strike"><span class="iconify" data-icon="mdi:format-strikethrough"></span></button>
+                            <div class="sep"></div>
+                            <button onclick="execCmd('justifyLeft')" title="Left"><span class="iconify" data-icon="mdi:format-align-left"></span></button>
+                            <button onclick="execCmd('justifyCenter')" title="Center"><span class="iconify" data-icon="mdi:format-align-center"></span></button>
+                            <button onclick="execCmd('justifyRight')" title="Right"><span class="iconify" data-icon="mdi:format-align-right"></span></button>
+                            <div class="sep"></div>
+                            <button onclick="execCmd('insertUnorderedList')" title="Bullet"><span class="iconify" data-icon="mdi:format-list-bulleted"></span></button>
+                            <button onclick="execCmd('insertOrderedList')" title="Number"><span class="iconify" data-icon="mdi:format-list-numbered"></span></button>
+                            <div class="sep"></div>
+                            <div class="color-picker-wrap" title="Text Color — Pehle text select karein phir color choose karein">
+                                <span class="iconify color-icon" data-icon="mdi:format-color-text"></span>
+                                <input type="color" id="editorTextColor" value="#ffffff" onchange="applyEditorColor(this.value)">
+                            </div>
+                        </div>
+                        <div id="textEditorArea" class="text-editor-area" contenteditable="true" data-placeholder="Yahan text likhein — English ya اردو..." oninput="updateStrokePreview()" onpaste="handleEditorPaste(event)"></div>
+
+                        <div class="mt-4 p-4 rounded-xl" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);">
+                            <h4 class="text-xs font-semibold text-neutral-400 mb-3 flex items-center gap-2"><span class="iconify" data-icon="mdi:format-text-box-outline"></span>Text Stroke & Glow</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                                <div class="sm:col-span-3"><label class="block text-xs text-neutral-500 mb-2">Color</label><div class="flex items-center gap-2"><input type="color" id="strokeColor" value="#3b82f6" style="width:36px;height:36px;border:none;background:transparent;cursor:pointer;border-radius:8px;" oninput="handleStrokeInput()"></div></div>
+                                <div class="sm:col-span-3"><label class="block text-xs text-neutral-500 mb-2">Solid Width</label><div class="flex items-center gap-2"><input type="range" id="strokeWidth" min="0" max="20" step="1" value="0" class="stroke-range flex-1" oninput="handleStrokeInput()"><span class="text-xs text-neutral-400 w-8 text-right" id="strokeWVal">0px</span></div></div>
+                                <div class="sm:col-span-3"><label class="block text-xs text-neutral-500 mb-2">Blur Width</label><div class="flex items-center gap-2"><input type="range" id="blurWidth" min="0" max="40" step="1" value="0" class="stroke-range flex-1" oninput="handleStrokeInput()"><span class="text-xs text-neutral-400 w-8 text-right" id="blurWVal">0px</span></div></div>
+                                <div class="sm:col-span-3"><label class="block text-xs text-neutral-500 mb-2">Opacity</label><div class="flex items-center gap-2"><input type="range" id="strokeOpacity" min="0" max="100" value="100" class="stroke-range flex-1" oninput="handleStrokeInput()"><span class="text-xs text-neutral-400 w-8 text-right" id="strokeOVal">100%</span></div></div>
+                            </div>
+                        </div>
+                        <div class="mt-4"><label class="block text-xs text-neutral-500 mb-2 flex items-center gap-2"><span class="iconify" data-icon="mdi:eye-outline"></span>Live Preview (Global Settings)</label><div id="livePreview" class="preview-box text-sm" style="min-height:80px;color:rgb(163,163,163);"></div></div>
+                    </div>
+
+                    <div class="flex gap-3"><button onclick="saveInfoCard()" class="admin-btn admin-btn-primary">Save Information</button><button onclick="closeInfoEditor()" class="admin-btn admin-btn-ghost">Cancel</button></div>
+                </div>
+
+                <div class="admin-card overflow-x-auto"><table class="admin-table"><thead><tr><th style="width:50px">Order</th><th>Title</th><th>Links</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead><tbody id="infoTableBody"></tbody></table></div>
+            </div>
+
+            <div id="tab-manageTools" class="admin-tab hidden"><p class="text-neutral-500 text-sm mb-6">Tools enable/disable</p><div class="space-y-3" id="toolsListAdmin"></div><button onclick="saveToolsSettings()" class="admin-btn admin-btn-primary mt-6">Save</button></div>
+
+            <div id="tab-appearance" class="admin-tab hidden">
+                <div class="max-w-2xl space-y-6">
+                    <div class="admin-card"><h3 class="text-sm font-medium mb-4">Colors</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-xs text-neutral-500 mb-2">Background</label><div class="flex items-center gap-3"><input id="setBgColor" type="color" value="#0A0A0A" class="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent"><input id="setBgColorText" type="text" value="#0A0A0A" class="admin-input flex-1" oninput="document.getElementById('setBgColor').value=this.value"></div></div><div><label class="block text-xs text-neutral-500 mb-2">Accent</label><div class="flex items-center gap-3"><input id="setAccentColor" type="color" value="#3b82f6" class="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent"><input id="setAccentColorText" type="text" value="#3b82f6" class="admin-input flex-1" oninput="document.getElementById('setAccentColor').value=this.value"></div></div><div><label class="block text-xs text-neutral-500 mb-2">Secondary</label><div class="flex items-center gap-3"><input id="setVioletColor" type="color" value="#8b5cf6" class="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent"><input id="setVioletColorText" type="text" value="#8b5cf6" class="admin-input flex-1" oninput="document.getElementById('setVioletColor').value=this.value"></div></div><div><label class="block text-xs text-neutral-500 mb-2">Text</label><div class="flex items-center gap-3"><input id="setTextColor" type="color" value="#FFFFFF" class="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent"><input id="setTextColorText" type="text" value="#FFFFFF" class="admin-input flex-1" oninput="document.getElementById('setTextColor').value=this.value"></div></div></div></div>
+                    <div class="admin-card"><h3 class="text-sm font-medium mb-4">Layout</h3><div class="space-y-4"><div><label class="block text-xs text-neutral-500 mb-2">Info Grid</label><select id="setInfoCols" class="admin-input"><option value="1" style="background:#111">1</option><option value="2" style="background:#111">2</option><option value="3" selected style="background:#111">3</option></select></div><div><label class="block text-xs text-neutral-500 mb-2">Tools Grid</label><select id="setToolsCols" class="admin-input"><option value="1" style="background:#111">1</option><option value="2" style="background:#111">2</option><option value="3" selected style="background:#111">3</option></select></div><div class="flex items-center justify-between"><div><div class="text-sm">Show About</div></div><div id="toggleAbout" class="toggle on" onclick="this.classList.toggle('on')"></div></div><div class="flex items-center justify-between"><div><div class="text-sm">Show Footer</div></div><div id="toggleFooter" class="toggle on" onclick="this.classList.toggle('on')"></div></div></div></div>
+                    <button onclick="saveAppearance()" class="admin-btn admin-btn-primary">Save</button>
+                </div>
+            </div>
+
+            <div id="tab-security" class="admin-tab hidden">
+                <div class="max-w-2xl space-y-6">
+                    <div class="admin-card"><h3 class="text-sm font-medium mb-4">Change Password</h3><div class="space-y-4"><div><label class="block text-xs text-neutral-500 mb-2">Current</label><input id="secCurrentPass" type="password" class="admin-input"></div><div><label class="block text-xs text-neutral-500 mb-2">New</label><input id="secNewPass" type="password" class="admin-input"></div><div><label class="block text-xs text-neutral-500 mb-2">Confirm</label><input id="secConfirmPass" type="password" class="admin-input"></div><button onclick="changePassword()" class="admin-btn admin-btn-primary">Update</button></div></div>
+                    <div class="admin-card"><h3 class="text-sm font-medium mb-4">Danger Zone</h3><div class="flex flex-wrap gap-3"><button onclick="resetAllSettings()" class="admin-btn admin-btn-danger text-xs">Reset Settings</button><button onclick="clearAllData()" class="admin-btn admin-btn-danger text-xs">Clear All</button></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="pt-32 pb-20 px-6 text-center"><div class="max-w-4xl mx-auto fade-in"><div class="inline-block mb-6"><span class="tag" style="background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid rgba(59,130,246,0.2);">Social Information Platform</span></div><h1 class="text-5xl md:text-7xl font-semibold tracking-tight leading-none mb-6">Tool<span style="background:linear-gradient(to right,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Tea</span></h1><p class="text-neutral-400 text-lg md:text-xl font-light leading-relaxed max-w-2xl mx-auto mb-10" id="heroDesc">Latest social information aur useful tools — sab ek jagah. Simple, fast, aur seedha.</p><div class="flex flex-col sm:flex-row items-center justify-center gap-4"><a href="#information" class="px-8 py-3.5 rounded-xl text-sm font-medium text-white transition-all hover:scale-105" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);">Read Information</a><a href="#tools" class="px-8 py-3.5 rounded-xl text-sm font-medium text-neutral-300 border border-white/10 hover:border-white/20 transition-all hover:scale-105">Explore Tools</a></div><div class="mt-8 flex flex-col sm:flex-row flex-wrap justify-center gap-4"><a href="https://toolteaphoto.blogspot.com/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-3 px-6 py-4 rounded-2xl border border-white/10 hover:border-white/20 transition-all hover:scale-105" style="background:rgba(255,255,255,0.02);"><span class="iconify text-2xl" style="color:#8b5cf6;" data-icon="mdi:image-edit-outline"></span><div class="text-left"><h3 class="text-white font-medium text-sm">Post and Photo Editor</h3></div><span class="iconify text-neutral-500 ml-2" data-icon="mdi:arrow-top-right"></span></a><a href="https://toolteashortner.vercel.app/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-3 px-6 py-4 rounded-2xl border border-white/10 hover:border-white/20 transition-all hover:scale-105" style="background:rgba(255,255,255,0.02);"><span class="iconify text-2xl" style="color:#3b82f6;" data-icon="mdi:link-variant"></span><div class="text-left"><h3 class="text-white font-medium text-sm">Short Link & QR</h3></div><span class="iconify text-neutral-500 ml-2" data-icon="mdi:arrow-top-right"></span></a><a href="https://tmail-indol.vercel.app/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-3 px-6 py-4 rounded-2xl border border-white/10 hover:border-white/20 transition-all hover:scale-105" style="background:rgba(255,255,255,0.02);"><span class="iconify text-2xl" style="color:#4ade80;" data-icon="mdi:email-fast-outline"></span><div class="text-left"><h3 class="text-white font-medium text-sm">Temp Mail</h3></div><span class="iconify text-neutral-500 ml-2" data-icon="mdi:arrow-top-right"></span></a></div></div></section>
+
+<section id="information" class="py-20 px-6"><div class="max-w-6xl mx-auto"><div class="text-center mb-14 fade-in"><span class="tag mb-4 inline-block" style="background:rgba(59,130,246,0.1);color:#3b82f6;border:1px solid rgba(59,130,246,0.2);">Latest Updates</span><h2 class="text-3xl md:text-4xl font-semibold tracking-tight mb-4" id="infoSectionTitle">Social Information</h2><p class="text-neutral-400 font-light max-w-xl mx-auto" id="infoSectionDesc">Social media aur tech duniya ki taaza khabrein aur important information.</p></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="infoGrid"></div><div class="text-center mt-10 fade-in"><button onclick="showToast('More information loading soon!')" class="px-8 py-3 rounded-xl text-sm font-medium text-neutral-300 border border-white/10 hover:border-white/20 transition-all hover:scale-105">More Information <span class="iconify inline-block ml-1 align-middle" data-icon="mdi:arrow-down"></span></button></div></div></section>
+
+<section id="tools" class="py-20 px-6" style="background:rgba(255,255,255,0.01);"><div class="max-w-6xl mx-auto"><div class="text-center mb-14 fade-in"><span class="tag mb-4 inline-block" style="background:rgba(139,92,246,0.1);color:#8b5cf6;border:1px solid rgba(139,92,246,0.2);">Free Tools</span><h2 class="text-3xl md:text-4xl font-semibold tracking-tight mb-4" id="toolsSectionTitle">Useful Tools</h2><p class="text-neutral-400 font-light max-w-xl mx-auto" id="toolsSectionDesc">Yeh tools bilkul free hain — koi signup nahi, koi limit nahi.</p></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="toolsGrid"></div></div></section>
+
+<section id="about" class="py-20 px-6"><div class="max-w-3xl mx-auto text-center fade-in"><span class="tag mb-4 inline-block" style="background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);">About Us</span><h2 class="text-3xl md:text-4xl font-semibold tracking-tight mb-6">ToolTea Kya Hai?</h2><p class="text-neutral-400 font-light leading-relaxed mb-6">ToolTea ek simple platform hai jahan aapko social media ki latest information aur daily use ke free tools milte hain.</p><div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-10"><div class="p-6 rounded-2xl border border-white/5" style="background:rgba(255,255,255,0.02);"><div class="text-3xl font-semibold mb-2" style="background:linear-gradient(to right,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">100%</div><div class="text-sm text-neutral-400 font-light">Free Tools</div></div><div class="p-6 rounded-2xl border border-white/5" style="background:rgba(255,255,255,0.02);"><div class="text-3xl font-semibold mb-2" style="background:linear-gradient(to right,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Daily</div><div class="text-sm text-neutral-400 font-light">Updates</div></div><div class="p-6 rounded-2xl border border-white/5" style="background:rgba(255,255,255,0.02);"><div class="text-3xl font-semibold mb-2" style="background:linear-gradient(to right,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">0</div><div class="text-sm text-neutral-400 font-light">Signup</div></div></div></div></section>
+
+<footer id="siteFooter" class="py-10 px-6 border-t border-white/5"><div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4"><div class="flex items-center gap-2"><div class="w-6 h-6 rounded-md flex items-center justify-center" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);"><span class="iconify text-white text-xs" data-icon="mdi:tea"></span></div><span class="text-sm font-medium" id="footerName">ToolTea</span><span class="text-xs text-neutral-500 ml-2" id="footerTagline">— Social Information & Tools</span></div><div class="text-xs text-neutral-500" id="footerText">© 2025 ToolTea. All rights reserved.</div></div></footer>
+
+<div id="toast" class="toast"><span class="iconify text-blue-400" data-icon="mdi:check-circle-outline"></span><span id="toastMsg">Msg</span></div>
+
+<script>
+var firebaseConfig = {
+    apiKey: "AIzaSyCBDYGcCP4uM3wLJyd8rQuvGIB7i5GT5T4",
+    authDomain: "mimetic-victor-p3n78.firebaseapp.com",
+    projectId: "mimetic-victor-p3n78",
+    storageBucket: "mimetic-victor-p3n78.firebasestorage.app",
+    messagingSenderId: "631277007702",
+    appId: "1:631277007702:web:a7b4d502ffabb336a95cf7"
+};
+
+var db = null;
+try {
+    if (typeof firebase !== 'undefined') {
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+    }
+} catch (e) { console.warn("Firebase init:", e); }
+
+var DEFAULT_INFO=[{id:1,title:"WhatsApp New Privacy Update 2025",category:"Social Media",desc:"WhatsApp ne naya privacy feature launch kiya hai...",img:"https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1200&h=630&fit=crop",time:"2 hours ago",active:true,targetLink:"",directLink:"",order:1},{id:2,title:"AI Tools Se Paise Kaise Kamaye",category:"Technology",desc:"2025 me AI tools ka use karke online earning...",img:"https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=1200&h=630&fit=crop",time:"5 hours ago",active:true,targetLink:"",directLink:"",order:2},{id:3,title:"Instagram Reels Algorithm 2025",category:"Trending",desc:"Naya algorithm kaise kaam karta hai...",img:"https://images.unsplash.com/photo-1611262588024-d12430b98920?q=80&w=1200&h=630&fit=crop",time:"8 hours ago",active:true,targetLink:"",directLink:"",order:3},{id:4,title:"Facebook Account Hack Se Bachen",category:"Security",desc:"Social media accounts ki security zaroori hai...",img:"https://images.unsplash.com/photo-1614064641913-6b7140414c71?q=80&w=1200&h=630&fit=crop",time:"12 hours ago",active:true,targetLink:"",directLink:"",order:4},{id:5,title:"YouTube Shorts Monetization",category:"YouTube",desc:"YouTube ne shorts par bhi earning ka option...",img:"https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?q=80&w=1200&h=630&fit=crop",time:"1 day ago",active:true,targetLink:"",directLink:"",order:5},{id:6,title:"Telegram Premium Features Free",category:"App Update",desc:"Telegram ke premium features bina pay ke...",img:"https://images.unsplash.com/photo-1611162616475-46b635cb6868?q=80&w=1200&h=630&fit=crop",time:"1 day ago",active:true,targetLink:"",directLink:"",order:6}];
+var DEFAULT_TOOLS=[{id:"wordcounter",name:"Word Counter",desc:"Words, characters, lines count.",icon:"mdi:counter",active:true},{id:"textcase",name:"Text Case Converter",desc:"UPPER, lower, Title Case.",icon:"mdi:format-text",active:true},{id:"colorpicker",name:"Color Picker",desc:"HEX/RGB code copy.",icon:"mdi:palette",active:true},{id:"passwordgen",name:"Password Generator",desc:"Strong password generate.",icon:"mdi:shield-key",active:true},{id:"loremipsum",name:"Lorem Ipsum Generator",desc:"Dummy text generate.",icon:"mdi:text-box",active:true},{id:"qrcode",name:"QR Code Generator",desc:"Text/URL ka QR code.",icon:"mdi:qrcode",active:true}];
+var CAT_COLORS={"Social Media":{bg:"rgba(59,130,246,0.1)",text:"#60a5fa"},"Technology":{bg:"rgba(139,92,246,0.1)",text:"#a78bfa"},"Trending":{bg:"rgba(34,197,94,0.1)",text:"#4ade80"},"Security":{bg:"rgba(234,179,8,0.1)",text:"#facc15"},"YouTube":{bg:"rgba(236,72,153,0.1)",text:"#f472b6"},"App Update":{bg:"rgba(59,130,246,0.1)",text:"#60a5fa"},"Other":{bg:"rgba(255,255,255,0.05)",text:"#a3a3a3"}};
+
+var adminLoggedIn=false;
+var infoCards=JSON.parse(localStorage.getItem('tt_info'))||JSON.parse(JSON.stringify(DEFAULT_INFO));
+var toolsData=JSON.parse(localStorage.getItem('tt_tools'))||JSON.parse(JSON.stringify(DEFAULT_TOOLS));
+var siteSettings=JSON.parse(localStorage.getItem('tt_settings'))||{siteName:"ToolTea",tagline:"Social Information & Tools",heroDesc:"Latest social information aur useful tools — sab ek jagah. Simple, fast, aur seedha.",footerText:"© 2025 ToolTea. All rights reserved.",infoTitle:"Social Information",infoDesc:"Social media aur tech duniya ki taaza khabrein aur important information.",toolsTitle:"Useful Tools",toolsDesc:"Yeh tools bilkul free hain — koi signup nahi, koi limit nahi.",showInfo:true,showTools:true,showAbout:true,showFooter:true,infoCols:3,toolsCols:3,bgColor:"#0A0A0A",accentColor:"#3b82f6",violetColor:"#8b5cf6",textColor:"#FFFFFF"};
+var adminPassword=localStorage.getItem('tt_pass')||"tool799";
+var uploadedImageBase64="";
+
+function initFirebaseSync() {
+    if (!db) return;
+    db.collection('infoCards').onSnapshot(function(snap) {
+        if (snap.empty) {
+            var dataToSeed = (infoCards && infoCards.length > 0) ? infoCards : DEFAULT_INFO; dataToSeed.forEach(function(item, idx) {
+                var d = Object.assign({}, item, {order: idx+1});
+                db.collection('infoCards').doc('post_' + item.id).set(d);
+            });
+        } else {
+            var items = [];
+            snap.forEach(function(doc) { items.push(doc.data()); });
+            items.sort(function(a,b){ return (a.order||a.id) - (b.order||b.id); });
+            infoCards = items;
+            localStorage.setItem('tt_info', JSON.stringify(infoCards));
+            renderInfoCards();
+            renderInfoTable();
+            if (document.getElementById('statInfo')) {
+                document.getElementById('statInfo').textContent = infoCards.filter(function(c){return c.active;}).length;
+            }
+        }
+    }, function(err){ console.warn("Firestore infoCards error:", err); });
+
+    db.collection('toolsData').onSnapshot(function(snap) {
+        if (snap.empty) {
+            DEFAULT_TOOLS.forEach(function(t) {
+                db.collection('toolsData').doc('tool_' + t.id).set(t);
+            });
+        } else {
+            var items = [];
+            snap.forEach(function(doc) { items.push(doc.data()); });
+            toolsData = items;
+            localStorage.setItem('tt_tools', JSON.stringify(toolsData));
+            renderToolCards();
+            if (document.getElementById('statTools')) {
+                document.getElementById('statTools').textContent = toolsData.filter(function(t){return t.active;}).length;
+            }
+        }
+    }, function(err){ console.warn("Firestore toolsData error:", err); });
+
+    db.collection('siteSettings').doc('settings').onSnapshot(function(doc) {
+        if (doc.exists) {
+            siteSettings = doc.data();
+            localStorage.setItem('tt_settings', JSON.stringify(siteSettings));
+            applySettings();
+        } else {
+            db.collection('siteSettings').doc('settings').set(siteSettings);
+        }
+    }, function(err){ console.warn("Firestore siteSettings error:", err); });
+
+    db.collection('siteSettings').doc('auth').onSnapshot(function(doc) {
+        if (doc.exists) {
+            adminPassword = doc.data().password || "tool799";
+            localStorage.setItem('tt_pass', adminPassword);
+        } else {
+            db.collection('siteSettings').doc('auth').set({password: "tool799"});
+        }
+    }, function(err){ console.warn("Firestore auth error:", err); });
+}
+
+var toastTimeout;function showToast(m){var t=document.getElementById('toast');document.getElementById('toastMsg').textContent=m;t.classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(function(){t.classList.remove('show')},3000)}
+document.getElementById('mobileMenuBtn').addEventListener('click',function(){document.getElementById('mobileMenu').classList.remove('hidden')});
+document.getElementById('mobileMenuClose').addEventListener('click',function(){document.getElementById('mobileMenu').classList.add('hidden')});
+document.querySelectorAll('.mobile-link').forEach(function(l){l.addEventListener('click',function(){document.getElementById('mobileMenu').classList.add('hidden')})});
+var obs=new IntersectionObserver(function(e){e.forEach(function(el){if(el.isIntersecting)el.target.classList.add('visible')})},{threshold:0.1});document.querySelectorAll('.fade-in').forEach(function(el){obs.observe(el)});
+var uz=document.getElementById('uploadZone');uz.addEventListener('dragover',function(e){e.preventDefault();uz.classList.add('dragover')});uz.addEventListener('dragleave',function(){uz.classList.remove('dragover')});uz.addEventListener('drop',function(e){e.preventDefault();uz.classList.remove('dragover');if(e.dataTransfer.files.length>0)processImageFile(e.dataTransfer.files[0])});
+
+function openAdminLogin(){if(adminLoggedIn){openAdminPanel();return}document.getElementById('adminLoginModal').classList.add('active');document.getElementById('loginError').classList.add('hidden');document.getElementById('adminPassInput').value='';setTimeout(function(){document.getElementById('adminPassInput').focus()},150)}
+function closeAdminLogin(){document.getElementById('adminLoginModal').classList.remove('active')}
+function attemptLogin(){var p=document.getElementById('adminPassInput').value;if(p===adminPassword){adminLoggedIn=true;closeAdminLogin();openAdminPanel();showToast('Login successful!')}else{document.getElementById('loginError').classList.remove('hidden');document.getElementById('adminPassInput').value='';document.getElementById('adminPassInput').focus()}}
+function openAdminPanel(){document.getElementById('adminPanel').classList.remove('hidden');document.body.style.overflow='hidden';loadAdminData()}
+function closeAdminPanel(){document.getElementById('adminPanel').classList.add('hidden');document.body.style.overflow=''}
+function adminLogout(){adminLoggedIn=false;closeAdminPanel();showToast('Logged out')}
+
+var tabTitles={dashboard:['Dashboard','Overview'],siteSettings:['Site Settings','General'],manageInfo:['Manage Information','Add, edit, delete, reorder'],manageTools:['Manage Tools','Enable/disable'],appearance:['Appearance','Colors & layout'],security:['Security','Password']};
+function switchAdminTab(tab,el){document.querySelectorAll('.admin-tab').forEach(function(t){t.classList.add('hidden')});document.getElementById('tab-'+tab).classList.remove('hidden');document.querySelectorAll('.admin-sidebar-link').forEach(function(l){l.classList.remove('active')});if(el)el.classList.add('active');document.getElementById('adminPageTitle').textContent=tabTitles[tab][0];document.getElementById('adminPageDesc').textContent=tabTitles[tab][1];if(tab==='manageInfo')renderInfoTable();if(tab==='manageTools')renderToolsAdmin()}
+
+function loadAdminData(){var s=siteSettings;document.getElementById('setSiteName').value=s.siteName;document.getElementById('setSiteTagline').value=s.tagline;document.getElementById('setHeroDesc').value=s.heroDesc;document.getElementById('setFooterText').value=s.footerText;document.getElementById('setInfoTitle').value=s.infoTitle;document.getElementById('setInfoDesc').value=s.infoDesc;document.getElementById('setToolsTitle').value=s.toolsTitle;document.getElementById('setToolsDesc').value=s.toolsDesc;document.getElementById('toggleInfoSection').classList.toggle('on',s.showInfo);document.getElementById('toggleToolsSection').classList.toggle('on',s.showTools);document.getElementById('toggleAbout').classList.toggle('on',s.showAbout);document.getElementById('toggleFooter').classList.toggle('on',s.showFooter);document.getElementById('setInfoCols').value=s.infoCols;document.getElementById('setToolsCols').value=s.toolsCols;document.getElementById('setBgColor').value=s.bgColor;document.getElementById('setBgColorText').value=s.bgColor;document.getElementById('setAccentColor').value=s.accentColor;document.getElementById('setAccentColorText').value=s.accentColor;document.getElementById('setVioletColor').value=s.violetColor;document.getElementById('setVioletColorText').value=s.violetColor;document.getElementById('setTextColor').value=s.textColor;document.getElementById('setTextColorText').value=s.textColor;document.getElementById('statInfo').textContent=infoCards.filter(function(c){return c.active}).length;document.getElementById('statTools').textContent=toolsData.filter(function(t){return t.active}).length;['setBgColor','setAccentColor','setVioletColor','setTextColor'].forEach(function(id){document.getElementById(id).oninput=function(){document.getElementById(id+'Text').value=this.value}})}
+
+function saveSiteSettings(){
+    var s=siteSettings;
+    s.siteName=document.getElementById('setSiteName').value;
+    s.tagline=document.getElementById('setSiteTagline').value;
+    s.heroDesc=document.getElementById('setHeroDesc').value;
+    s.footerText=document.getElementById('setFooterText').value;
+    s.infoTitle=document.getElementById('setInfoTitle').value;
+    s.infoDesc=document.getElementById('setInfoDesc').value;
+    s.toolsTitle=document.getElementById('setToolsTitle').value;
+    s.toolsDesc=document.getElementById('setToolsDesc').value;
+    s.showInfo=document.getElementById('toggleInfoSection').classList.contains('on');
+    s.showTools=document.getElementById('toggleToolsSection').classList.contains('on');
+    localStorage.setItem('tt_settings',JSON.stringify(s));
+    if (db) db.collection('siteSettings').doc('settings').set(s);
+    applySettings();
+    showToast('Saved!');
+}
+
+function saveAppearance(){
+    var s=siteSettings;
+    s.bgColor=document.getElementById('setBgColor').value;
+    s.accentColor=document.getElementById('setAccentColor').value;
+    s.violetColor=document.getElementById('setVioletColor').value;
+    s.textColor=document.getElementById('setTextColor').value;
+    s.infoCols=parseInt(document.getElementById('setInfoCols').value);
+    s.toolsCols=parseInt(document.getElementById('setToolsCols').value);
+    s.showAbout=document.getElementById('toggleAbout').classList.contains('on');
+    s.showFooter=document.getElementById('toggleFooter').classList.contains('on');
+    localStorage.setItem('tt_settings',JSON.stringify(s));
+    if (db) db.collection('siteSettings').doc('settings').set(s);
+    applySettings();
+    showToast('Saved!');
+}
+
+function applySettings(){var s=siteSettings;document.body.style.backgroundColor=s.bgColor;document.body.style.color=s.textColor;document.getElementById('siteNameNav').textContent=s.siteName;document.getElementById('heroDesc').textContent=s.heroDesc;document.getElementById('infoSectionTitle').textContent=s.infoTitle;document.getElementById('infoSectionDesc').textContent=s.infoDesc;document.getElementById('toolsSectionTitle').textContent=s.toolsTitle;document.getElementById('toolsSectionDesc').textContent=s.toolsDesc;document.getElementById('footerName').textContent=s.siteName;document.getElementById('footerTagline').textContent='— '+s.tagline;document.getElementById('footerText').textContent=s.footerText;document.getElementById('information').style.display=s.showInfo?'':'none';document.getElementById('tools').style.display=s.showTools?'':'none';document.getElementById('about').style.display=s.showAbout?'':'none';document.getElementById('siteFooter').style.display=s.showFooter?'':'none';var ig=document.getElementById('infoGrid');ig.className='grid grid-cols-1 gap-6';if(s.infoCols>=2)ig.classList.add('md:grid-cols-2');if(s.infoCols>=3)ig.classList.add('lg:grid-cols-3');var tg=document.getElementById('toolsGrid');tg.className='grid grid-cols-1 gap-6';if(s.toolsCols>=2)tg.classList.add('md:grid-cols-2');if(s.toolsCols>=3)tg.classList.add('lg:grid-cols-3');renderInfoCards();renderToolCards()}
+
+function handleImageUpload(e){if(e.target.files.length>0)processImageFile(e.target.files[0])}
+function processImageFile(file){if(!file.type.startsWith('image/')){showToast('Sirf images!');return}var rw=Math.min(parseInt(document.getElementById('imgResizeW').value)||500,800),rh=Math.min(parseInt(document.getElementById('imgResizeH').value)||280,500),q=Math.min(parseInt(document.getElementById('imgQuality').value)||65,85);var reader=new FileReader();reader.onload=function(ev){var img=new Image();img.onload=function(){var c=document.createElement('canvas');c.width=rw;c.height=rh;var ctx=c.getContext('2d');var scale=Math.max(rw/img.width,rh/img.height);var nw=img.width*scale,nh=img.height*scale;ctx.drawImage(img,(rw-nw)/2,(rh-nh)/2,nw,nh);uploadedImageBase64=c.toDataURL('image/jpeg',q/100);document.getElementById('imgPreview').src=uploadedImageBase64;document.getElementById('imgPreviewContainer').classList.remove('hidden');document.getElementById('imgInfoText').textContent=rw+'x'+rh+'px | Q:'+q+'% | ~'+Math.round(uploadedImageBase64.length/1024)+'KB';document.getElementById('editInfoImg').value='';showToast('Uploaded!')};img.src=ev.target.result};reader.readAsDataURL(file)}
+function removeUploadedImage(){uploadedImageBase64='';document.getElementById('imgPreviewContainer').classList.add('hidden');document.getElementById('imgFileInput').value=''}
+
+function handleEditorPaste(e){e.preventDefault();var html=(e.clipboardData||window.clipboardData).getData('text/html');var txt=(e.clipboardData||window.clipboardData).getData('text/plain');if(html){html=html.replace(/background-color\s*:\s*[^;"]+/gi,'');html=html.replace(/background\s*:\s*[^;"]+/gi,'');html=html.replace(/bgcolor\s*=\s*["'][^"']*["']/gi,'');document.execCommand('insertHTML',false,html)}else{document.execCommand('insertText',false,txt)}updateStrokePreview()}
+
+var savedSelection = null;
+var activeSpan = null;
+document.addEventListener('selectionchange', function() {
+    var sel = window.getSelection();
+    var ea = document.getElementById('textEditorArea');
+    if(ea && sel.rangeCount > 0 && ea.contains(sel.anchorNode)) {
+        var currentRange = sel.getRangeAt(0);
+        savedSelection = currentRange.cloneRange();
+        
+        if (activeSpan && (activeSpan.contains(currentRange.commonAncestorContainer) || currentRange.commonAncestorContainer === activeSpan)) {
+            // Keep activeSpan if we're still inside it
+        } else {
+            activeSpan = null;
+        }
+        
+        var parent = sel.anchorNode;
+        if(parent.nodeType === 3) parent = parent.parentNode;
+        var style = window.getComputedStyle(parent);
+        
+        if(style.fontSize) {
+            var size = parseInt(style.fontSize);
+            if(!isNaN(size)) {
+                var slider = document.getElementById('editorFontSize');
+                slider.value = size;
+                document.getElementById('fontSizeVal').textContent = size + 'px';
+            }
+        }
+        if(style.fontFamily) {
+            var font = style.fontFamily.toLowerCase();
+            var select = document.getElementById('editorFont');
+            for(var i=0; i<select.options.length; i++) {
+                var optFont = select.options[i].value.split(',')[0].replace(/['"]/g, '').toLowerCase().trim();
+                if(font.indexOf(optFont) !== -1) {
+                    select.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+});
+
+function applyEditorColor(color){
+    var sel = window.getSelection();
+    var range = null;
+    if(savedSelection && document.getElementById('textEditorArea').contains(savedSelection.commonAncestorContainer)){
+        range = savedSelection;
+    } else if(sel.rangeCount > 0 && document.getElementById('textEditorArea').contains(sel.anchorNode)){
+        range = sel.getRangeAt(0);
+    }
+    if(!range || range.collapsed){showToast('Pehle text select karein!');return}
+    var fragment=range.extractContents();
+    var span=document.createElement('span');
+    span.style.color=color;
+    span.style.background='transparent';
+    span.style.webkitTextFillColor=color;
+    span.appendChild(fragment);
+    range.insertNode(span);
+    var newRange = document.createRange();
+    newRange.selectNodeContents(span);
+    if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+    }
+    savedSelection = newRange;
+    activeSpan = span;
+    updateStrokePreview();
+    showToast('Color changed!');
+}
+
+function execCmd(cmd){
+    if (savedSelection) {
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(savedSelection);
+    }
+    document.execCommand(cmd,false,null);
+    updateStrokePreview();
+}
+
+function handleFontSizeInput(val) {
+    document.getElementById('fontSizeVal').textContent = val + 'px';
+    applyRealtimeStyle('size', val + 'px');
+    updateStrokePreview();
+}
+function handleFontFamilyInput(val) {
+    applyRealtimeStyle('font', val);
+    updateStrokePreview();
+}
+function getSolidTextShadow(width, color) {
+    if (width <= 0) return 'none';
+    var shadows = [];
+    var step = width > 5 ? 15 : 30; // Fewer points to reduce opacity overlap
+    for (var angle = 0; angle < 360; angle += step) {
+        var x = (width * Math.cos(angle * Math.PI / 180)).toFixed(2);
+        var y = (width * Math.sin(angle * Math.PI / 180)).toFixed(2);
+        shadows.push(x + 'px ' + y + 'px 0 ' + color);
+    }
+    return shadows.join(',');
+}
+
+function handleStrokeInput() {
+    var sc=document.getElementById('strokeColor').value;
+    var sw=parseFloat(document.getElementById('strokeWidth').value);
+    var bw=parseFloat(document.getElementById('blurWidth').value);
+    var so=parseInt(document.getElementById('strokeOpacity').value);
+    
+    var colorVal = document.getElementById('strokeColorVal');
+    if (colorVal) colorVal.textContent = sc;
+    document.getElementById('strokeWVal').textContent = sw + 'px';
+    if(document.getElementById('blurWVal')) document.getElementById('blurWVal').textContent = bw + 'px';
+    document.getElementById('strokeOVal').textContent = so + '%';
+    
+    var shadowArr = [];
+    if(sw > 0 || bw > 0) {
+        var r=parseInt(sc.slice(1,3),16),g=parseInt(sc.slice(3,5),16),b=parseInt(sc.slice(5,7),16);
+        var rgba='rgba('+r+','+g+','+b+','+(so/100)+')';
+        if (bw > 0) {
+            shadowArr.push('0 0 ' + bw + 'px ' + rgba);
+            shadowArr.push('0 0 ' + (bw*1.5) + 'px ' + rgba);
+        }
+        if (sw > 0) {
+            var solid = getSolidTextShadow(sw, rgba);
+            if(solid !== 'none') shadowArr.push(solid);
+        }
+    }
+    applyRealtimeStyle('shadow', shadowArr.length > 0 ? shadowArr.join(',') : '');
+    updateStrokePreview();
+}
+
+function applyRealtimeStyle(type, value) {
+    var ea = document.getElementById('textEditorArea');
+    if (!savedSelection || savedSelection.collapsed) {
+        if (type === 'font') ea.style.fontFamily = value;
+        if (type === 'size') ea.style.fontSize = value;
+        if (type === 'shadow') ea.style.textShadow = value;
+        return;
+    }
+    
+    if (!activeSpan || !ea.contains(activeSpan)) {
+        activeSpan = document.createElement('span');
+        try {
+            activeSpan.appendChild(savedSelection.extractContents());
+            savedSelection.insertNode(activeSpan);
+            var newRange = document.createRange();
+            newRange.selectNodeContents(activeSpan);
+            savedSelection = newRange;
+            var currentSel = window.getSelection();
+            currentSel.removeAllRanges();
+            currentSel.addRange(newRange);
+        } catch(e) {
+            console.error(e);
+        }
+    }
+    
+    if (type === 'font') activeSpan.style.fontFamily = value;
+    if (type === 'size') activeSpan.style.fontSize = value;
+    if (type === 'shadow') activeSpan.style.textShadow = value;
+}
+
+function resetStroke(){
+    document.getElementById('strokeColor').value='#3b82f6';
+    document.getElementById('strokeWidth').value='0';
+    if(document.getElementById('blurWidth')) document.getElementById('blurWidth').value='0';
+    document.getElementById('strokeOpacity').value='100';
+    var colorVal = document.getElementById('strokeColorVal');
+    if (colorVal) colorVal.textContent='#3b82f6';
+    document.getElementById('strokeWVal').textContent='0px';
+    if(document.getElementById('blurWVal')) document.getElementById('blurWVal').textContent='0px';
+    document.getElementById('strokeOVal').textContent='100%';
+    var ea=document.getElementById('textEditorArea');
+    ea.style.textShadow='';
+    updateStrokePreview();
+}
+
+function updateStrokePreview(){
+    var ea=document.getElementById('textEditorArea'),content=ea.innerHTML;
+    var f=document.getElementById('editorFont').value;
+    var sz=document.getElementById('editorFontSize').value+'px';
+    var preview=document.getElementById('livePreview');
+    if(preview.innerHTML !== content) preview.innerHTML=content||'<span style="color:#525252">Preview yahan dikhega...</span>';
+    preview.style.fontFamily=f;
+    preview.style.fontSize=sz;
+    
+    var sc=document.getElementById('strokeColor').value;
+    var sw=parseFloat(document.getElementById('strokeWidth').value);
+    var bw=parseFloat(document.getElementById('blurWidth')?document.getElementById('blurWidth').value:0);
+    var so=parseInt(document.getElementById('strokeOpacity').value);
+    var shadowArr=[];
+    if(sw>0 || bw>0){
+        var r=parseInt(sc.slice(1,3),16),g=parseInt(sc.slice(3,5),16),b=parseInt(sc.slice(5,7),16);
+        var rgba='rgba('+r+','+g+','+b+','+(so/100)+')';
+        if (bw>0) {
+            shadowArr.push('0 0 '+bw+'px '+rgba);
+            shadowArr.push('0 0 '+(bw*1.5)+'px '+rgba);
+        }
+        if (sw>0) {
+            var solid=getSolidTextShadow(sw, rgba);
+            if(solid!=='none') shadowArr.push(solid);
+        }
+        preview.style.textShadow=shadowArr.join(',');
+    }else{
+        preview.style.textShadow='';
+    }
+}
+
+function handleCardClick(id){
+    var c=infoCards.find(function(x){return x.id===id});
+    if(!c)return;
+    var opened=false;
+    if(c.targetLink){window.open(c.targetLink,'_blank');opened=true}
+    if(c.directLink){setTimeout(function(){window.open(c.directLink,'_blank')},c.targetLink?300:0);opened=true}
+    if(!opened)showToast('Coming soon!')
+}
+
+function shareWhatsApp(e, id){
+    if(e) e.stopPropagation();
+    var c = infoCards.find(function(x){return x.id===id});
+    if(!c) return;
+    var targetUrl = window.location.origin + '/api/share?id=' + c.id;
+    var text = encodeURIComponent("*" + c.title + "*\n\n" + targetUrl);
+    window.open("https://api.whatsapp.com/send?text=" + text, "_blank");
+}
+
+function shareFacebook(e, id){
+    if(e) e.stopPropagation();
+    var c = infoCards.find(function(x){return x.id===id});
+    if(!c) return;
+    var targetUrl = window.location.origin + '/api/share?id=' + c.id;
+    var fbUrl = "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(targetUrl);
+    window.open(fbUrl, "_blank", "width=600,height=400");
+}
+
+function sharePost(e, id){
+    if(e) e.stopPropagation();
+    var c = infoCards.find(function(x){return x.id===id});
+    if(!c) return;
+    var targetUrl = window.location.origin + '/api/share?id=' + c.id;
+    if (navigator.share) {
+        navigator.share({
+            title: c.title,
+            text: c.title,
+            url: targetUrl
+        }).catch(function(){});
+    } else {
+        var dummy = document.createElement("input");
+        document.body.appendChild(dummy);
+        dummy.value = c.title + " - " + targetUrl;
+        dummy.select();
+        document.execCommand("copy");
+        document.body.removeChild(dummy);
+        showToast('Share link copied!');
+    }
+}
+
+function renderInfoCards(){var g=document.getElementById('infoGrid');var a=infoCards.filter(function(c){return c.active});g.innerHTML=a.map(function(c){var cc=CAT_COLORS[c.category]||CAT_COLORS["Other"];var d=c.descHtml||c.desc||'';var linkBadge='';if(c.targetLink&&c.directLink)linkBadge='<span class="tag" style="background:rgba(34,197,94,0.1);color:#4ade80;border:1px solid rgba(34,197,94,0.2);">2 Links</span>';else if(c.targetLink||c.directLink)linkBadge='<span class="tag" style="background:rgba(59,130,246,0.1);color:#60a5fa;border:1px solid rgba(59,130,246,0.2);">Link</span>';return '<article id="post-'+c.id+'" class="info-card rounded-2xl border border-white/5 p-6 transition-all duration-300 cursor-pointer fade-in visible flex flex-col justify-between" style="background:rgba(255,255,255,0.02)" onclick="handleCardClick('+c.id+')"><div><div class="flex items-center gap-3 mb-4"><span class="tag" style="background:'+cc.bg+';color:'+cc.text+'">'+c.category+'</span><span class="text-xs text-neutral-500">'+c.time+'</span>'+linkBadge+'</div>'+(c.img?'<img src="'+c.img+'" alt="" class="w-full h-40 object-cover rounded-xl mb-4" loading="lazy">':'')+'<h3 class="text-base font-medium mb-2 leading-snug">'+c.title+'</h3><div class="text-neutral-400 text-sm font-light leading-relaxed info-desc-content mb-4">'+d+'</div></div><div class="pt-3 border-t border-white/5 flex items-center justify-between gap-1.5 mt-auto" onclick="event.stopPropagation()"><button onclick="shareWhatsApp(event,'+c.id+')" title="Share on WhatsApp" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all"><span class="iconify text-sm" data-icon="mdi:whatsapp"></span> WhatsApp</button><button onclick="shareFacebook(event,'+c.id+')" title="Share on Facebook" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-blue-400 bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 transition-all"><span class="iconify text-sm" data-icon="mdi:facebook"></span> Facebook</button><button onclick="sharePost(event,'+c.id+')" title="Copy or Share Link" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-purple-400 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 transition-all"><span class="iconify text-sm" data-icon="mdi:share-variant"></span> Link</button></div></article>'}).join('');
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('post') && !window.scrolledToPost) {
+        var postId = urlParams.get('post');
+        var el = document.getElementById('post-' + postId);
+        if (el) {
+            setTimeout(function(){
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.style.border = '2px solid #3b82f6';
+                setTimeout(function(){ el.style.border = '1px solid rgba(255,255,255,0.05)'; }, 3000);
+            }, 500);
+            window.scrolledToPost = true;
+        }
+    }
+}
+
+function renderInfoTable(){var tb=document.getElementById('infoTableBody');tb.innerHTML=infoCards.map(function(c,i){var cc=CAT_COLORS[c.category]||CAT_COLORS["Other"];var linkCount=0;if(c.targetLink)linkCount++;if(c.directLink)linkCount++;var linkLabel=linkCount===2?'2 Links':(linkCount===1?'1 Link':'—');return '<tr><td><div class="flex flex-col gap-1"><button class="reorder-btn" onclick="moveInfoCard('+i+',-1)" '+(i===0?'disabled':'')+' title="Uper"><span class="iconify" data-icon="mdi:chevron-up"></span></button><button class="reorder-btn" onclick="moveInfoCard('+i+',1)" '+(i===infoCards.length-1?'disabled':'')+' title="Neeche"><span class="iconify" data-icon="mdi:chevron-down"></span></button></div></td><td class="text-white font-medium" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+c.title+'</td><td>'+(linkCount>0?'<span class="admin-badge" style="background:rgba(34,197,94,0.1);color:#4ade80;">'+linkLabel+'</span>':'<span class="text-neutral-600">—</span>')+'</td><td><span class="admin-badge" style="background:'+cc.bg+';color:'+cc.text+'">'+c.category+'</span></td><td><span class="admin-badge" style="background:'+(c.active?'rgba(34,197,94,0.1)':'rgba(239,68,68,0.1)')+';color:'+(c.active?'#4ade80':'#f87171')+'">'+(c.active?'Active':'Hidden')+'</span></td><td><div class="flex gap-2"><button onclick="editInfoCard('+c.id+')" class="p-1.5 rounded-lg hover:bg-white/5 text-neutral-400 hover:text-white transition-all"><span class="iconify text-base" data-icon="mdi:pencil-outline"></span></button><button onclick="toggleInfoCard('+c.id+')" class="p-1.5 rounded-lg hover:bg-white/5 text-neutral-400 hover:text-white transition-all"><span class="iconify text-base" data-icon="'+(c.active?'mdi:eye-off-outline':'mdi:eye-outline')+'"></span></button><button onclick="deleteInfoCard('+c.id+')" class="p-1.5 rounded-lg hover:bg-red-500/10 text-neutral-400 hover:text-red-400 transition-all"><span class="iconify text-base" data-icon="mdi:delete-outline"></span></button></div></td></tr>'}).join('')}
+
+function moveInfoCard(index,direction){
+    var newIndex=index+direction;
+    if(newIndex<0||newIndex>=infoCards.length)return;
+    var temp=infoCards[index];
+    infoCards[index]=infoCards[newIndex];
+    infoCards[newIndex]=temp;
+    infoCards.forEach(function(item, idx){ item.order = idx + 1; });
+    localStorage.setItem('tt_info',JSON.stringify(infoCards));
+    if (db) {
+        db.collection('infoCards').doc('post_' + infoCards[index].id).set(infoCards[index]);
+        db.collection('infoCards').doc('post_' + infoCards[newIndex].id).set(infoCards[newIndex]);
+    }
+    renderInfoTable();
+    renderInfoCards();
+    showToast('Order changed!');
+}
+
+function openInfoEditor(id){document.getElementById('infoEditor').classList.remove('hidden');document.getElementById('infoEditorTitle').textContent=id?'Edit Information':'Add Information';if(!id){document.getElementById('editInfoId').value='';document.getElementById('editInfoTitle').value='';document.getElementById('editInfoCat').value='Social Media';document.getElementById('editInfoTime').value='Just now';document.getElementById('editInfoImg').value='';document.getElementById('editTargetLink').value='';document.getElementById('editDirectLink').value='';document.getElementById('textEditorArea').innerHTML='';document.getElementById('livePreview').innerHTML='<span style="color:#525252">Preview yahan dikhega...</span>';resetStroke();removeUploadedImage();document.getElementById('editorFont').value="'Inter', sans-serif";document.getElementById('editorFontSize').value='18';document.getElementById('fontSizeVal').textContent='18px';var ea=document.getElementById('textEditorArea');ea.style.fontFamily="'Inter', sans-serif";ea.style.fontSize='18px';updateStrokePreview()}}
+function closeInfoEditor(){document.getElementById('infoEditor').classList.add('hidden')}
+
+function editInfoCard(id){var c=infoCards.find(function(x){return x.id===id});if(!c)return;openInfoEditor(id);document.getElementById('editInfoId').value=c.id;document.getElementById('editInfoTitle').value=c.title;document.getElementById('editInfoCat').value=c.category;document.getElementById('editInfoTime').value=c.time;document.getElementById('editInfoImg').value=(c.img&&c.img.startsWith('http'))?c.img:'';document.getElementById('editTargetLink').value=c.targetLink||'';document.getElementById('editDirectLink').value=c.directLink||'';var dc=c.descHtml||c.desc||'';document.getElementById('textEditorArea').innerHTML=dc;var ea=document.getElementById('textEditorArea');if(c.descFont){document.getElementById('editorFont').value=c.descFont;ea.style.fontFamily=c.descFont;}if(c.descFontSize){document.getElementById('editorFontSize').value=c.descFontSize;document.getElementById('fontSizeVal').textContent=c.descFontSize+'px';ea.style.fontSize=c.descFontSize+'px';}if(c.strokeColor)document.getElementById('strokeColor').value=c.strokeColor;if(c.strokeWidth!=null)document.getElementById('strokeWidth').value=c.strokeWidth;if(c.blurWidth!=null) {var bwInput = document.getElementById('blurWidth'); if(bwInput) bwInput.value=c.blurWidth;}if(c.strokeOpacity!=null)document.getElementById('strokeOpacity').value=c.strokeOpacity;var sw=parseFloat(c.strokeWidth||0);var bw=parseFloat(c.blurWidth||0);var r=parseInt((c.strokeColor||'#3b82f6').slice(1,3),16),g=parseInt((c.strokeColor||'#3b82f6').slice(3,5),16),b=parseInt((c.strokeColor||'#3b82f6').slice(5,7),16),so=parseInt(c.strokeOpacity||100);var rgba='rgba('+r+','+g+','+b+','+(so/100)+')';var shadowArr=[];if(bw>0){shadowArr.push('0 0 '+bw+'px '+rgba);shadowArr.push('0 0 '+(bw*1.5)+'px '+rgba);}if(sw>0){var solid=getSolidTextShadow(sw,rgba);if(solid!=='none')shadowArr.push(solid);}ea.style.textShadow=shadowArr.length>0?shadowArr.join(','):'';updateStrokePreview();if(c.img&&c.img.startsWith('data:')){uploadedImageBase64=c.img;document.getElementById('imgPreview').src=c.img;document.getElementById('imgPreviewContainer').classList.remove('hidden');document.getElementById('imgInfoText').textContent='Uploaded image';document.getElementById('editInfoImg').value=''}else{removeUploadedImage()}}
+
+function saveInfoCard(){
+    var title=document.getElementById('editInfoTitle').value.trim();
+    var ec=document.getElementById('textEditorArea').innerHTML.trim();
+    var pt=document.getElementById('textEditorArea').innerText.trim();
+    if(!title||!pt){showToast('Title aur description zaruri!');return}
+    var imgSrc=uploadedImageBase64||document.getElementById('editInfoImg').value.trim()||'';
+    var sc=document.getElementById('strokeColor').value;
+    var sw=parseFloat(document.getElementById('strokeWidth').value);
+    var bw=parseFloat(document.getElementById('blurWidth')?document.getElementById('blurWidth').value:0);
+    var so=parseInt(document.getElementById('strokeOpacity').value);
+    var r=parseInt(sc.slice(1,3),16),g=parseInt(sc.slice(3,5),16),b=parseInt(sc.slice(5,7),16);
+    var rgba='rgba('+r+','+g+','+b+','+(so/100)+')';
+    var shadowArr = [];
+    if (bw > 0) {
+        shadowArr.push('0 0 ' + bw + 'px ' + rgba);
+        shadowArr.push('0 0 ' + (bw*1.5) + 'px ' + rgba);
+    }
+    if (sw > 0) {
+        var solid = getSolidTextShadow(sw, rgba);
+        if(solid !== 'none') shadowArr.push(solid);
+    }
+    var shadow = shadowArr.length > 0 ? shadowArr.join(',') : 'none';
+    var ff=document.getElementById('editorFont').value,fsz=document.getElementById('editorFontSize').value+'px';
+    var ws='font-family:'+ff+';font-size:'+fsz+';text-shadow:'+shadow+';line-height:1.8;color:rgb(163,163,163);';
+    var styledHtml='<div style="'+ws+'">'+ec+'</div>';
+    var data={title:title,desc:pt,descHtml:styledHtml,descFont:ff,descFontSize:document.getElementById('editorFontSize').value,strokeColor:sc,strokeWidth:sw,blurWidth:bw,strokeOpacity:so,category:document.getElementById('editInfoCat').value,img:imgSrc,time:document.getElementById('editInfoTime').value.trim()||'Just now',active:true,targetLink:document.getElementById('editTargetLink').value.trim(),directLink:document.getElementById('editDirectLink').value.trim()};
+    var editId=document.getElementById('editInfoId').value;
+    if(editId){
+        data.id = parseInt(editId);
+        var idx=infoCards.findIndex(function(x){return x.id===data.id});
+        if(idx>-1) {
+            data.order = infoCards[idx].order || (idx + 1);
+            Object.assign(infoCards[idx],data);
+        }
+    }else{
+        data.id=infoCards.length>0?Math.max.apply(null,infoCards.map(function(c){return c.id}))+1:1;
+        data.order = infoCards.length + 1;
+        infoCards.push(data);
+    }
+    try{localStorage.setItem('tt_info',JSON.stringify(infoCards))}catch(e){}
+    if (db) {
+        db.collection('infoCards').doc('post_' + data.id).set(data);
+    }
+    closeInfoEditor();
+    renderInfoTable();
+    renderInfoCards();
+    if (document.getElementById('statInfo')) document.getElementById('statInfo').textContent=infoCards.filter(function(c){return c.active}).length;
+    showToast(editId?'Updated!':'Added!');
+}
+
+function toggleInfoCard(id){
+    var c=infoCards.find(function(x){return x.id===id});
+    if(c){
+        c.active=!c.active;
+        localStorage.setItem('tt_info',JSON.stringify(infoCards));
+        if (db) db.collection('infoCards').doc('post_' + id).update({active: c.active});
+        renderInfoTable();
+        renderInfoCards();
+        if (document.getElementById('statInfo')) document.getElementById('statInfo').textContent=infoCards.filter(function(c){return c.active}).length;
+        showToast('Changed!');
+    }
+}
+
+function deleteInfoCard(id){
+    infoCards=infoCards.filter(function(x){return x.id!==id});
+    localStorage.setItem('tt_info',JSON.stringify(infoCards));
+    if (db) db.collection('infoCards').doc('post_' + id).delete();
+    renderInfoTable();
+    renderInfoCards();
+    if (document.getElementById('statInfo')) document.getElementById('statInfo').textContent=infoCards.filter(function(c){return c.active}).length;
+    showToast('Deleted!');
+}
+
+function renderToolsAdmin(){document.getElementById('toolsListAdmin').innerHTML=toolsData.map(function(t){return '<div class="admin-card flex items-center justify-between"><div class="flex items-center gap-4"><div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:rgba(255,255,255,0.05)"><span class="iconify text-lg text-neutral-300" data-icon="'+t.icon+'"></span></div><div><div class="text-sm font-medium">'+t.name+'</div><div class="text-xs text-neutral-500">'+t.desc+'</div></div></div><div class="toggle '+(t.active?'on':'')+'" onclick="this.classList.toggle(\'on\')"></div></div>'}).join('')}
+
+function saveToolsSettings(){
+    var tgs=document.querySelectorAll('#toolsListAdmin .toggle');
+    tgs.forEach(function(tg,i){
+        toolsData[i].active=tg.classList.contains('on');
+        if (db) db.collection('toolsData').doc('tool_' + toolsData[i].id).set(toolsData[i]);
+    });
+    localStorage.setItem('tt_tools',JSON.stringify(toolsData));
+    renderToolCards();
+    if (document.getElementById('statTools')) document.getElementById('statTools').textContent=toolsData.filter(function(t){return t.active}).length;
+    showToast('Saved!');
+}
+
+function getToolHTML(tid){switch(tid){case 'wordcounter':return '<textarea id="wordCounterInput" rows="3" placeholder="Type ya paste..." class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-neutral-500 outline-none focus:border-blue-500/50 transition-colors resize-none"></textarea><div class="mt-3 flex gap-4 text-xs text-neutral-400"><span>Words: <strong class="text-white" id="wc-words">0</strong></span><span>Chars: <strong class="text-white" id="wc-chars">0</strong></span><span>Lines: <strong class="text-white" id="wc-lines">0</strong></span></div>';case 'textcase':return '<input id="caseInput" type="text" placeholder="Text..." class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-neutral-500 outline-none focus:border-blue-500/50 transition-colors mb-3"><div class="flex gap-2 flex-wrap"><button onclick="convertCase(\'upper\')" class="px-4 py-2 rounded-lg text-xs font-medium border border-white/10 hover:border-white/20 text-neutral-300 hover:text-white transition-all">UPPER</button><button onclick="convertCase(\'lower\')" class="px-4 py-2 rounded-lg text-xs font-medium border border-white/10 hover:border-white/20 text-neutral-300 hover:text-white transition-all">lower</button><button onclick="convertCase(\'title\')" class="px-4 py-2 rounded-lg text-xs font-medium border border-white/10 hover:border-white/20 text-neutral-300 hover:text-white transition-all">Title</button><button onclick="convertCase(\'copy\')" class="px-4 py-2 rounded-lg text-xs font-medium border border-white/10 hover:border-white/20 text-neutral-300 hover:text-white transition-all"><span class="iconify inline-block align-middle mr-1" data-icon="mdi:content-copy"></span>Copy</button></div>';case 'colorpicker':return '<div class="flex items-center gap-4 mb-3"><input id="colorPicker" type="color" value="#3b82f6" class="w-14 h-14 rounded-xl cursor-pointer border-0 bg-transparent"><div><div class="text-sm font-mono text-white" id="colorHex">#3b82f6</div><div class="text-xs text-neutral-400 font-mono" id="colorRgb">rgb(59,130,246)</div></div></div><button onclick="copyColor()" class="w-full px-4 py-2.5 rounded-xl text-xs font-medium border border-white/10 hover:border-white/20 text-neutral-300 hover:text-white transition-all"><span class="iconify inline-block align-middle mr-1" data-icon="mdi:content-copy"></span>Copy HEX</button>';case 'passwordgen':return '<div class="flex items-center gap-2 mb-3"><input id="passOutput" type="text" readonly value="" class="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white font-mono outline-none"><button onclick="copyPassword()" class="p-3 rounded-xl border border-white/10 hover:border-white/20 text-neutral-400 hover:text-white transition-all"><span class="iconify text-lg" data-icon="mdi:content-copy"></span></button></div><div class="flex items-center justify-between mb-3"><label class="text-xs text-neutral-400">Length: <strong class="text-white" id="passLenVal">16</strong></label><input id="passLen" type="range" min="8" max="32" value="16" class="w-32 accent-blue-500"></div><button onclick="generatePassword()" class="w-full px-4 py-2.5 rounded-xl text-xs font-medium text-white transition-all hover:scale-105" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6)">Generate</button>';case 'loremipsum':return '<select id="loremCount" class="bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-blue-500/50 transition-colors w-full mb-3"><option value="1" style="background:#111">1</option><option value="2" style="background:#111">2</option><option value="3" selected style="background:#111">3</option><option value="5" style="background:#111">5</option></select><div id="loremOutput" class="bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-neutral-400 font-light leading-relaxed max-h-32 overflow-y-auto mb-3"></div><button onclick="generateLorem()" class="w-full px-4 py-2.5 rounded-xl text-xs font-medium border border-white/10 hover:border-white/20 text-neutral-300 hover:text-white transition-all">Generate</button>';case 'qrcode':return '<input id="qrInput" type="text" placeholder="URL ya text..." class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-neutral-500 outline-none focus:border-blue-500/50 transition-colors mb-3"><div id="qrOutput" class="flex justify-center mb-3"></div><button onclick="generateQR()" class="w-full px-4 py-2.5 rounded-xl text-xs font-medium border border-white/10 hover:border-white/20 text-neutral-300 hover:text-white transition-all">Generate QR</button>';default:return ''}}
+
+function renderToolCards(){var g=document.getElementById('toolsGrid');var a=toolsData.filter(function(t){return t.active});g.innerHTML=a.map(function(t){return '<div class="tool-card rounded-2xl border border-white/5 p-6 transition-all duration-300 fade-in visible" style="background:rgba(255,255,255,0.02)"><div class="tool-icon w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300" style="background:rgba(255,255,255,0.05)"><span class="iconify text-xl text-neutral-300" data-icon="'+t.icon+'"></span></div><h3 class="text-base font-medium mb-2">'+t.name+'</h3><p class="text-neutral-400 text-sm font-light mb-4">'+t.desc+'</p>'+getToolHTML(t.id)+'</div>'}).join('');initToolScripts()}
+
+function initToolScripts(){var wci=document.getElementById('wordCounterInput');if(wci)wci.oninput=function(){var t=this.value;document.getElementById('wc-words').textContent=t.trim()===''?0:t.trim().split(/\s+/).length;document.getElementById('wc-chars').textContent=t.length;document.getElementById('wc-lines').textContent=t===''?0:t.split('\n').length};var cp=document.getElementById('colorPicker');if(cp)cp.oninput=function(){var h=this.value,r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);document.getElementById('colorHex').textContent=h;document.getElementById('colorRgb').textContent='rgb('+r+', '+g+', '+b+')'};var pl=document.getElementById('passLen');if(pl)pl.oninput=function(){document.getElementById('passLenVal').textContent=this.value};if(document.getElementById('passOutput'))generatePassword();if(document.getElementById('loremOutput'))generateLorem()}
+function convertCase(type){var ci=document.getElementById('caseInput');if(!ci)return;var v=ci.value;if(!v){showToast('Pehle likhein!');return}if(type==='upper')ci.value=v.toUpperCase();else if(type==='lower')ci.value=v.toLowerCase();else if(type==='title')ci.value=v.replace(/\w\S*/g,function(t){return t.charAt(0).toUpperCase()+t.substr(1).toLowerCase()});else if(type==='copy'){navigator.clipboard.writeText(ci.value).then(function(){showToast('Copied!')});return}showToast('Converted!')}
+function copyColor(){var cp=document.getElementById('colorPicker');if(cp)navigator.clipboard.writeText(cp.value).then(function(){showToast('Copied!')})}
+function generatePassword(){var ch='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=',l=parseInt(document.getElementById('passLen').value),p='';for(var i=0;i<l;i++)p+=ch.charAt(Math.floor(Math.random()*ch.length));document.getElementById('passOutput').value=p}
+function copyPassword(){var p=document.getElementById('passOutput').value;if(!p){showToast('Generate karein!');return}navigator.clipboard.writeText(p).then(function(){showToast('Copied!')})}
+var loremTexts=["Lorem ipsum dolor sit amet, consectetur adipiscing elit.","Duis aute irure dolor in reprehenderit in voluptate.","Curabitur pretium tincidunt lacus.","Praesent dapibus, neque id cursus faucibus.","Pellentesque habitant morbi tristique senectus."];
+function generateLorem(){document.getElementById('loremOutput').textContent=loremTexts.slice(0,parseInt(document.getElementById('loremCount').value)).join('\n\n')}
+function generateQR(){var inp=document.getElementById('qrInput').value.trim();if(!inp){showToast('Likhein!');return}document.getElementById('qrOutput').innerHTML='<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data='+encodeURIComponent(inp)+'&bgcolor=0A0A0A&color=FFFFFF" alt="QR" class="rounded-xl">';showToast('Generated!')}
+
+function changePassword(){
+    var c=document.getElementById('secCurrentPass').value,n=document.getElementById('secNewPass').value,cf=document.getElementById('secConfirmPass').value;
+    if(c!==adminPassword){showToast('Wrong!');return}
+    if(n.length<4){showToast('Min 4!');return}
+    if(n!==cf){showToast('No match!');return}
+    adminPassword=n;
+    localStorage.setItem('tt_pass',adminPassword);
+    if (db) db.collection('siteSettings').doc('auth').set({password: adminPassword});
+    document.getElementById('secCurrentPass').value='';
+    document.getElementById('secNewPass').value='';
+    document.getElementById('secConfirmPass').value='';
+    showToast('Changed!');
+}
+
+function resetAllSettings(){
+    if(!confirm('Reset?'))return;
+    localStorage.removeItem('tt_settings');
+    siteSettings={siteName:"ToolTea",tagline:"Social Information & Tools",heroDesc:"Latest social information aur useful tools — sab ek jagah. Simple, fast, aur seedha.",footerText:"© 2025 ToolTea. All rights reserved.",infoTitle:"Social Information",infoDesc:"Social media aur tech duniya ki taaza khabrein aur important information.",toolsTitle:"Useful Tools",toolsDesc:"Yeh tools bilkul free hain — koi signup nahi, koi limit nahi.",showInfo:true,showTools:true,showAbout:true,showFooter:true,infoCols:3,toolsCols:3,bgColor:"#0A0A0A",accentColor:"#3b82f6",violetColor:"#8b5cf6",textColor:"#FFFFFF"};
+    if (db) db.collection('siteSettings').doc('settings').set(siteSettings);
+    loadAdminData();
+    applySettings();
+    showToast('Reset!');
+}
+
+function clearAllData(){
+    if(!confirm('Delete ALL?'))return;
+    localStorage.clear();
+    infoCards=JSON.parse(JSON.stringify(DEFAULT_INFO));
+    toolsData=JSON.parse(JSON.stringify(DEFAULT_TOOLS));
+    adminPassword="tool799";
+    siteSettings={siteName:"ToolTea",tagline:"Social Information & Tools",heroDesc:"Latest social information aur useful tools — sab ek jagah. Simple, fast, aur seedha.",footerText:"© 2025 ToolTea. All rights reserved.",infoTitle:"Social Information",infoDesc:"Social media aur tech duniya ki taaza khabrein aur important information.",toolsTitle:"Useful Tools",toolsDesc:"Yeh tools bilkul free hain — koi signup nahi, koi limit nahi.",showInfo:true,showTools:true,showAbout:true,showFooter:true,infoCols:3,toolsCols:3,bgColor:"#0A0A0A",accentColor:"#3b82f6",violetColor:"#8b5cf6",textColor:"#FFFFFF"};
+    if (db) {
+        db.collection('siteSettings').doc('settings').set(siteSettings);
+        db.collection('siteSettings').doc('auth').set({password: "tool799"});
+        var dataToSeed = (infoCards && infoCards.length > 0) ? infoCards : DEFAULT_INFO; dataToSeed.forEach(function(item, idx) {
+            db.collection('infoCards').doc('post_' + item.id).set(Object.assign({}, item, {order: idx+1}));
+        });
+        DEFAULT_TOOLS.forEach(function(t) {
+            db.collection('toolsData').doc('tool_' + t.id).set(t);
+        });
+    }
+    loadAdminData();
+    applySettings();
+    showToast('Cleared!');
+}
+
+applySettings();
+initFirebaseSync();
+
+setTimeout(function(){
+    var hash = window.location.hash;
+    if(hash && hash.startsWith('#post-')){
+        var el = document.querySelector(hash);
+        if(el){
+            el.scrollIntoView({behavior: 'smooth', block: 'center'});
+            el.style.border = '2px solid #3b82f6';
+            el.style.boxShadow = '0 0 20px rgba(59,130,246,0.5)';
+        }
+    }
+}, 500);
+</script>
+</body>
+</html>
