@@ -6,16 +6,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    // YAHAN FIRESTORE KI JAGAH REALTIME DATABASE KI API USE KI GAYI HAI (.json ke sath)
-    const response = await fetch(`https://mimetic-victor-p3n78-default-rtdb.asia-southeast1.firebasedatabase.app/infoCards/post_${id}.json`);
+    // Sahi database ka URL laga diya gaya hai
+    const response = await fetch(`https://school-c9633-default-rtdb.asia-southeast1.firebasedatabase.app/infoCards/post_${id}.json`);
     const data = await response.json();
 
-    // Agar post majood na ho toh seedha homepage par le jao
     if (!data || data.error) {
       return res.redirect(302, '/');
     }
 
-    // Realtime Database seedha text return karta hai, is liye fields extract karna bohut asan hai
     const title = data.title || 'ToolTea';
     const desc = data.desc || 'Social Information & Tools';
     const img = data.img || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&h=630&fit=crop';
